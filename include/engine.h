@@ -1,3 +1,4 @@
+#pragma once
 #ifndef ENGINE_H
 #define ENGINE_H
 
@@ -24,6 +25,8 @@ public:
     std::string label;
     // Constructor
     Value(double data, std::initializer_list<shared_ptr<Value>> children, std::string op, std::string label);
+    //move constructor
+    Value(Value &&other) noexcept;
     ~Value();
     shared_ptr<Value> pow(float n);
     double get_data();

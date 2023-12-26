@@ -7,12 +7,16 @@
 #include <random>
 #include <vector>
 #include <string>
-#include <engine.h>
+#include "./include/engine.h"
 using namespace std;
 
 // Constructor
 Value::Value(double data, std::initializer_list<shared_ptr<Value>> children = {}, std::string op = "", std::string label = "")
-    : data(data), grad(0.0), node_backward([]() {}), prev(children), _op(op), label(label) {}
+    : data(data), grad(0.0), node_backward([]() {}), prev(move(children)), _op(move(op)), label(label) {}
+
+//move constructor
+Value::Value(Value &&other) noexcept
+    : data(other.data), grad(other.grad), node_backward(move(other.node_backward)), prev(move(other.prev)), _op(move(other._op)), label(move(other.label)) {}
 void Value::set_data(double data)
 {
     this->data = data;
@@ -36,7 +40,7 @@ Value::~Value() {
 shared_ptr<Value> Value::pow(float n)
 {
     auto out = make_shared<Value>(std::pow(this->data, n), std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "pow");
-    out->node_backward = [this, &out, n]() mutable
+    out->node_backward = [this, out, n]() mutable
     {
         this->grad += n * std::pow(this->data, n - 1) * out->grad;
     };
@@ -49,7 +53,7 @@ shared_ptr<Value> Value::tanh()
     float x = this->data;
     float t = (exp(2.0 * x) - 1.0) / (exp(2.0 * x) + 1.0);
     auto out = make_shared<Value>(std::tanh(this->data), std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "tanh");
-    out->node_backward = [this, &out, t]() mutable
+    out->node_backward = [this, out, t]() mutable
     {
         this->grad += (1.0 - std::pow(t, 2)) * out->grad;
     };
@@ -59,8 +63,12 @@ shared_ptr<Value> Value::tanh()
 shared_ptr<Value> Value::operator+(const shared_ptr<Value> &other)
 {
     auto out = make_shared<Value>(this->data + other->data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "+");
-    out->node_backward = [this, &out, &other]() mutable
+    out->node_backward = [this, out, other]() mutable
     {
+        if(out == NULL || other == NULL){
+            cout<<"out or other is null"<<endl;
+            throw "out or other is null";
+        }
         this->grad += 1.0 * out->grad;
         other->grad += 1.0 * out->grad;
     };
@@ -70,8 +78,12 @@ shared_ptr<Value> Value::operator+(const shared_ptr<Value> &other)
 shared_ptr<Value> Value::operator*(const shared_ptr<Value> &other)
 {
     auto out = make_shared<Value>(this->data * other->data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "*");
-    out->node_backward = [this, &out, &other]() mutable
+    out->node_backward = [this, out, other]() mutable
     {
+        if(out == NULL || other == NULL){
+            cout<<"out or other is null"<<endl;
+            throw "out or other is null";
+        }
         this->grad += other->data * out->grad;
         other->grad += this->data * out->grad;
     };
@@ -100,7 +112,12 @@ shared_ptr<Value> Value::operator/(const shared_ptr<Value> &other)
 // String representation
 std::ostream &operator<<(std::ostream &os, const shared_ptr<Value> &v)
 {
-    os << "Value(data=" << v->data << ", grad=" << v->grad << ", op=" << v->_op << ")";
+    //handle null ptr 
+    if(v == NULL){
+        cout<<"v is null"<<endl;
+        throw "v is null";
+    }
+    os << "Value(data=" << v->data << ", grad=" << v->get_grad() << ", op=" << v->_op << ")";
     return os;
 }
 
@@ -140,6 +157,11 @@ std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const std::s
 
 
 std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
+    if (lhs == NULL || rhs == NULL){
+        // cout<<lhs<<" "<<rhs<<endl;
+        cout<<"lhs or rhs are null"<<endl;
+        // throw "lhs or rhs is null";
+    }
     return (*lhs) * rhs;
 }
 std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
@@ -200,8 +222,8 @@ void test_backprop()
     cout << "w1: " << w1 << endl;
     cout << "x1: " << x1 << endl;
 }
-int main(int argc, char const *argv[])
-{
-    test_backprop();
-    return 0;
-}
+// int main(int argc, char const *argv[])
+// {
+//     test_backprop();
+//     return 0;
+// }
