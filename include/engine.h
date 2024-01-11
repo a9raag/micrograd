@@ -16,24 +16,28 @@ using namespace std;
 class Value: public std::enable_shared_from_this<Value>
 {
 private:
-    double data;
-    double grad;
-    function<void()> node_backward;
+    double *data;
+    double *grad;
+    int size;
+    
     set<shared_ptr<Value>> prev;
     std::string _op;
+    int threadsPerBlock;
+    int blocksPerGrid;
 public:
+    function<void()> node_backward;
     std::string label;
     // Constructor
-    Value(double data, std::initializer_list<shared_ptr<Value>> children, std::string op, std::string label);
+    Value(double *data, int size, std::initializer_list<shared_ptr<Value>> children, string op, string label);
     //move constructor
     Value(Value &&other) noexcept;
     ~Value();
-    shared_ptr<Value> pow(float n);
-    double get_data();
-    void set_data(double data);
-    void set_grad(double grad);
-    double get_grad();
-
+    shared_ptr<Value> pow(double n);
+    double* get_data();
+    void set_data(double *data);
+    void set_grad(double *grad);
+    double* get_grad();
+    void set_grad_1();
     shared_ptr<Value> tanh();
     shared_ptr<Value> operator+(const shared_ptr<Value> &other);
     shared_ptr<Value> operator*(const shared_ptr<Value> &other);
