@@ -1,24 +1,100 @@
-#include <vector>
-#include <initializer_list>
-#include <stdexcept>
-#include <iostream>
-#include <array> 
-#include <memory>
-#include <set> 
-#include <functional>
-#include "1dcompute.cu"
+#include "include/tensor.h"
+#include "include/compute1d.h"
+#include "include/compute2d.h"
+// #include <compute1d.h>
+// #include <compute2d.h>
 
 using namespace std;
+// get Compute Type from shape
 template <typename T>
-class Tensor {
-        
-private:
-    size_t totalSize;
-    unique_ptr<BaseCompute<T>> dataCompute; 
-    unique_ptr<BaseCompute<T>> gradCompute;
+unique_ptr<BaseCompute<T>> getComputeType(vector<size_t> shape) {
+    if (shape.size() == 1) {
+        return make_unique<Compute1D<T>>(shape[0]);
+    } else if (shape.size() == 2) {
+        return make_unique<Compute2D<T>>(shape[0], shape[1]);
+    } else {
+        throw std::invalid_argument("Only 1D and 2D tensors are supported.");
+    }
+}
 
-    // Convert multidimensional indices to linear index
-    size_t getLinearIndex(std::vector<int> coords) const {
+template <typename T>
+Tensor<T>::Tensor() {
+    this->ndims = 0;
+    this->size = 0;
+    this->totalSize = 0;
+}
+
+template <typename T>
+Tensor<T>::Tensor(vector<size_t> shape) {
+    this->ndims = shape.size();
+    this->shape = shape;
+    this->size = 1;
+    for (size_t dim : shape) {
+        if (dim == 0) throw std::invalid_argument("Dimension size cannot be zero.");
+        size *= dim;
+    }
+
+    if (shape.empty()) throw std::invalid_argument("Dimensions cannot be empty.");
+
+    totalSize = 1;
+    for (size_t dim : shape) {
+        if (dim == 0) throw std::invalid_argument("Dimension size cannot be zero.");
+        totalSize *= dim;
+    }
+    dataCompute = getComputeType<T>(shape);
+    gradCompute = getComputeType<T>(shape);
+}
+
+template <typename T>
+Tensor<T>::Tensor(const Tensor& other) {
+    this->ndims = other.ndims;
+    this->shape = other.shape;
+    this->size = other.size;
+    this->totalSize = other.totalSize;
+    this->dataCompute = getComputeType<T>(shape);
+    this->gradCompute = getComputeType<T>(shape);
+    this->dataCompute->setData(other.dataCompute->getData());
+    this->gradCompute->setData(other.gradCompute->getData());
+}
+
+
+
+template <typename T>
+Tensor<T>::Tensor(Tensor&& other) {
+    this->ndims = other.ndims;
+    this->shape = other.shape;
+    this->size = other.size;
+    this->totalSize = other.totalSize;
+    this->dataCompute = move(other.dataCompute);
+    this->gradCompute = move(other.gradCompute);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::operator=(const Tensor<T>& other) {
+    this->ndims = other.ndims;
+    this->shape = other.shape;
+    this->size = other.size;
+    this->totalSize = other.totalSize;
+    this->dataCompute = getComputeType<T>(shape);
+    this->gradCompute = getComputeType<T>(shape);
+    this->dataCompute->setData(other.dataCompute->getData());
+    this->gradCompute->setData(other.gradCompute->getData());
+    return *this;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::operator=(Tensor<T>& other) {
+    this->ndims = other.ndims;
+    this->shape = other.shape;
+    this->size = other.size;
+    this->totalSize = other.totalSize;
+    this->dataCompute = move(other.dataCompute);
+    this->gradCompute = move(other.gradCompute);
+    return *this;
+}
+
+template <typename T>
+size_t Tensor<T>::getLinearIndex(std::vector<int> coords) const {
         if (coords.size() != shape.size()) {
             throw std::invalid_argument("Number of indices must match number of dimensions.");
         }
@@ -31,227 +107,166 @@ private:
         }
         return (size_t)linearIndex;
     }
-public:
-    // declare complie-time constants 
-    // value of following variables will be known at compile time
-    size_t size;
-    size_t ndims;
-    vector<size_t> shape;
 
-    Tensor(vector<size_t> shape) {
-        this->ndims = shape.size();
-        this->shape = shape;
-        this->size = 1;
-        for (size_t dim : shape) {
-            if (dim == 0) throw std::invalid_argument("Dimension size cannot be zero.");
-            size *= dim;
-        }
+template <typename T>
+template <typename ... Args>
+T& Tensor<T>::operator()(Args ... args) {
+    auto idx = getLinearIndex({args...});
+    return this->dataCompute->getData()[idx];
+}
 
-        if (shape.empty()) throw std::invalid_argument("Dimensions cannot be empty.");
+template <typename T>
+void Tensor<T>::setData(vector<T> data){
+    this->dataCompute->setData(data);
+}
 
-        totalSize = 1;
-        for (size_t dim : shape) {
-            if (dim == 0) throw std::invalid_argument("Dimension size cannot be zero.");
-            totalSize *= dim;
-        }
+template <typename T>
+void Tensor<T>::setData(T* data){
+    this->dataCompute->setData(data);
+}
 
-        dataCompute = make_unique<Compute1D<T>>(size);
-        gradCompute  = make_unique<Compute1D<T>>(size);
-    }
+template <typename T>
+vector<T> Tensor<T>::getData(){
+    return this->dataCompute->getData();
+}
 
-    //copy constructor
-    Tensor(const Tensor& other) {
-        this->ndims = other.ndims;
-        this->shape = other.shape;
-        this->size = other.size;
-        this->totalSize = other.totalSize;
-        this->dataCompute = make_unique<Compute1D<T>>(other.size);
-        this->gradCompute = make_unique<Compute1D<T>>(other.size);
-        this->dataCompute->setData(other.dataCompute->getData());
-        this->gradCompute->setData(other.gradCompute->getData());
-    }
-    //default constructor
-    Tensor() {
-        this->ndims = 0;
-        this->size = 0;
-        this->totalSize = 0;
-    }
-    //move constructor
-    Tensor(Tensor&& other) {
-        this->ndims = other.ndims;
-        this->shape = other.shape;
-        this->size = other.size;
-        this->totalSize = other.totalSize;
-        this->dataCompute = move(other.dataCompute);
-        this->gradCompute = move(other.gradCompute);
-    }
-    Tensor<T> operator=(const Tensor<T>& other) {
-        this->ndims = other.ndims;
-        this->shape = other.shape;
-        this->size = other.size;
-        this->totalSize = other.totalSize;
-        this->dataCompute = make_unique<Compute1D<T>>(other.size);
-        this->gradCompute = make_unique<Compute1D<T>>(other.size);
-        this->dataCompute->setData(other.dataCompute->getData());
-        this->gradCompute->setData(other.gradCompute->getData());
-        return *this;
-    }
-    Tensor<T> operator=(Tensor<T>& other) {
-        this->ndims = other.ndims;
-        this->shape = other.shape;
-        this->size = other.size;
-        this->totalSize = other.totalSize;
-        this->dataCompute = move(other.dataCompute);
-        this->gradCompute = move(other.gradCompute);
-        return *this;
-    }
-    template <typename ... Args>
-    T& operator()(Args ... args) {
-        auto idx = getLinearIndex({args...});
-        return this->dataCompute->getData()[idx];
-    }
-
-    void setData(vector<T> data){
-        this->dataCompute->setData(data);
-        // this->data = data;
-    }
-
-    void setData(T* data){
-        this->dataCompute->setData(data);
-        // this->data = vector<T>(data, data + size);
-    }
-    vector<T> getData(){
-        return this->dataCompute->getData();
-    }
-    void print_recursive(ostream& os , size_t i, size_t j) const{
-        auto data = dataCompute->getData();
-        
-        if (i == ndims - 1){
-            os << "[";
-            for (int k = 0;  k < shape[i]; ++k) {
-                os << data[j * shape[i] + k];
-                if (k != shape[i] - 1) os << ", ";
-            }
-            os << "]";
-            return;
-        }
+template <typename T>
+void Tensor<T>::print_recursive(ostream& os , size_t i, size_t j) const{
+    auto data = dataCompute->getData();
+    
+    if (i == ndims - 1){
         os << "[";
         for (int k = 0;  k < shape[i]; ++k) {
-            print_recursive(os, i + 1, j * shape[i] + k);
-            if (k != shape[i] - 1){
-                os << ", ";
-                os<<endl;
-            }
+            os << data[j * shape[i] + k];
+            if (k != shape[i] - 1) os << ", ";
         }
         os << "]";
-
+        return;
     }
-    
-    friend ostream &operator<<(ostream& os, const Tensor& t) {
-        
-        t.print_recursive(os, 0, 0);
-        return os;
+    os << "[";
+    for (int k = 0;  k < shape[i]; ++k) {
+        print_recursive(os, i + 1, j * shape[i] + k);
+        if (k != shape[i] - 1){
+            os << ", ";
+            os<<endl;
+        }
     }
-    Tensor neg() {
-        Tensor<T> result = Tensor<T>(shape);
-        result.setData(dataCompute->neg());
-        return result;
+    os << "]";
+}
+
+template <typename T>
+ostream& operator<<(ostream& os, const Tensor<T>& t) {
+    t.print_recursive(os, 0, 0);
+    return os;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::neg() {
+    Tensor<T> result = Tensor<T>(shape);
+    result.setData(dataCompute->neg());
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::neg() const {
+    Tensor<T> result = Tensor<T>(shape);
+    result.setData(dataCompute->neg());
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::pow(double n){
+    Tensor<T> result = Tensor<T>(shape);
+    result.setData(dataCompute->pow(n));
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::tanh(){ 
+    Tensor<T> result = Tensor<T>(shape);
+    result.setData(dataCompute->tanh());
+    return result;
+}
+
+template <typename T>
+void Tensor<T>::fill(T val){
+    dataCompute->fill(val);
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::operator*(const Tensor &other){ 
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->mul(other.dataCompute->getData(), shape.data(), size);
+    result.setData(c);
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::operator*(const double other){ 
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->mul(other);
+    result.setData(c);
+    return result;
+}   
+
+template <typename T>
+Tensor<T> Tensor<T>::dot(Tensor &other){
+    if (shape.size() != 2 || other.shape.size() != 2){
+        throw std::invalid_argument("Dot product is only defined for 2D tensors.");
     }
-
-    Tensor neg() const {
-        Tensor<T> result = Tensor<T>(shape);
-        result.setData(dataCompute->neg());
-        return result;
+    if (shape[1] != other.shape[0]){
+        throw std::invalid_argument("Dot product is only defined for tensors with matching inner dimensions.");
     }
+    vector<size_t> newShape = {shape[0], other.shape[1]};
+    Tensor<T> result = Tensor<T>(newShape);
+    vector<size_t> compute_shape = {shape[0], shape[1], other.shape[1]};
+    T* c = dataCompute->dot(other.dataCompute->getData(), compute_shape.data(), result.size);
+    result.setData(c);
+    return result;
+}
 
-    Tensor pow(double n){
-        Tensor<T> result = Tensor<T>(shape);
-        result.setData(dataCompute->pow(n));
-        return result;
-    }
+template <typename T>
+Tensor<T> Tensor<T>::operator/(Tensor &other){
+    return *this * other.pow(-1);
+}
 
-    Tensor tanh(){ 
-        Tensor<T> result = Tensor<T>(shape);
-        result.setData(dataCompute->tanh());
-        return result;
-    }
+template <typename T>
+Tensor<T> Tensor<T>::operator+(const Tensor& other){
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
+    result.setData(c);
+    return result;
+}
 
-    void fill(T val){
-        dataCompute->fill(val);
-    }
+template <typename T>
+Tensor<T> Tensor<T>::operator+(const Tensor& other) const{
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
+    result.setData(c);
+    return result;
+}
 
+template <typename T>
+Tensor<T> operator+(const Tensor<T>& t1, const Tensor<T>& t2) {
+    return t1.operator+(t2);
+}
 
+template <typename T>
+Tensor<T> Tensor<T>::operator-(const Tensor &other){
+    return *this + other.neg();
+}
 
+template <typename T>
+Tensor<T> operator-(const Tensor<T>& t1, const Tensor<T>& t2) {
+    return t1.operator-(t2);
+}
 
-    Tensor operator*(const Tensor &other){ 
-        Tensor<T> result = Tensor<T>(shape);
-        T* c = dataCompute->dot(other.dataCompute->getData());
-        result.setData(c);
-        return result;
-    }
+template <typename T>
+Tensor<T> operator*(const Tensor<T>& t1, const Tensor<T>& t2) {
+    return t1 * t2;
+}
 
-    Tensor operator*(const double other){ 
-        Tensor<T> result = Tensor<T>(shape);
-        T* c = dataCompute->dot(other);
-        result.setData(c);
-        return result;
-    }
-
-    Tensor operator/(Tensor &other){
-        return *this * other.pow(-1);
-    }
-    
-    
-    Tensor operator+(const Tensor& other){
-
-        Tensor<T> result = Tensor<T>(shape);
-        T* c = dataCompute->add(other.dataCompute->getData());
-        result.setData(c);
-        return result;
-    }
-    Tensor operator+(const Tensor& other) const{
-
-        Tensor<T> result = Tensor<T>(shape);
-        T* c = dataCompute->add(other.dataCompute->getData());
-        result.setData(c);
-        return result;
-    }
-    friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
-        return t1.operator+(t2);
-    }
-    
-    Tensor operator-(const Tensor &other){
-        return *this + other.neg();
-    }
-
-    friend Tensor operator-(const Tensor& t1, const Tensor& t2) {
-        return t1.operator-(t2);
-    }
-
-    friend Tensor operator*(const Tensor& t1, const Tensor& t2) {
-        return t1 * t2;
-    }
-    friend Tensor operator/(const Tensor& t1, const Tensor& t2) {
-        return t1 * t2.pow(-1);
-    }   
-
-};
-
-// // Example usage
-// int main() {
-//     Tensor<int, 3, 3, 3> t;
-
-    
-//     // Assign random values to array
-//     int value = 0;
-//     for (int i = 0; i < 3; ++i) {
-//         for (int j = 0;  j < 3; ++j) {
-//             for (int k = 0; k < 3; ++k) {
-//                 t(i, j, k) = value;
-//                 value++;
-//             }
-//         }
-//     }
-//     cout << t << endl;
-//     return 0;
-// }
+template <typename T>
+Tensor<T> operator/(const Tensor<T>& t1, const Tensor<T>& t2) {
+    return t1 * t2.pow(-1);
+}
