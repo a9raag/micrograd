@@ -20,6 +20,9 @@ public:
     virtual T* pow(double n) = 0;
     virtual T* tanh() = 0;
     virtual void fill(T val) = 0;
+
+    virtual void fillRandom(unsigned int seed) = 0;
+
     virtual T* getData() = 0;
     virtual void setData(T* data) = 0;
 };

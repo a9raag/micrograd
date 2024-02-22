@@ -30,6 +30,7 @@ public:
     T* pow(double n);
     T* tanh();
     void fill(T val);
+    void fillRandom(unsigned int seed);
 };
 
 #endif // COMPUTE2D_H

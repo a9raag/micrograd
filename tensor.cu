@@ -1,6 +1,7 @@
 #include "include/tensor.h"
 #include "include/compute1d.h"
 #include "include/compute2d.h"
+#include "tensor.h"
 // #include <compute1d.h>
 // #include <compute2d.h>
 
@@ -94,19 +95,33 @@ Tensor<T> Tensor<T>::operator=(Tensor<T>& other) {
 }
 
 template <typename T>
-size_t Tensor<T>::getLinearIndex(std::vector<int> coords) const {
-        if (coords.size() != shape.size()) {
-            throw std::invalid_argument("Number of indices must match number of dimensions.");
-        }
+Tensor<T> Tensor<T>::randomize() {
+    return randomize(0);
+}
 
-        size_t linearIndex = 0; 
-        size_t dimProduct = 1;
-        for(int i = coords.size() - 1; i >= 0; --i) {
-            linearIndex += coords[i] * dimProduct;
-            dimProduct *= shape[i];
-        }
-        return (size_t)linearIndex;
+template <typename T>
+Tensor<T> Tensor<T>::randomize(unsigned int seed)
+{
+    dataCompute->fillRandom(seed);
+    return *this;
+}
+template <typename T>
+size_t Tensor<T>::getLinearIndex(std::vector<int> coords) const
+{
+    if (coords.size() != shape.size())
+    {
+        throw std::invalid_argument("Number of indices must match number of dimensions.");
     }
+
+    size_t linearIndex = 0;
+    size_t dimProduct = 1;
+    for (int i = coords.size() - 1; i >= 0; --i)
+    {
+        linearIndex += coords[i] * dimProduct;
+        dimProduct *= shape[i];
+    }
+    return (size_t)linearIndex;
+}
 
 template <typename T>
 template <typename ... Args>

@@ -22,13 +22,16 @@ public:
     size_t size;
     size_t ndims;
     vector<size_t> shape;
+    
     Tensor();
     Tensor(vector<size_t> shape);
     Tensor(const Tensor& other);
     Tensor(Tensor&& other);
-    
     Tensor<T> operator=(const Tensor<T>& other);
     Tensor<T> operator=(Tensor<T>& other);
+
+    Tensor<T> randomize();
+    Tensor<T> randomize(unsigned int seed);
     
     size_t getLinearIndex(std::vector<int> coords) const;
     template <typename ... Args>

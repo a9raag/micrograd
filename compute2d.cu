@@ -3,6 +3,7 @@
 // #include "include/cuda_compute.h"
 // #include "cuda_compute.cu"
 #include <stdexcept>
+#include "compute2d.h"
 using namespace std;
 
 template <typename T>
@@ -148,5 +149,12 @@ T* Compute2D<T>::tanh(){
 template <typename T>
 void Compute2D<T>::fill(T value){
     fillKernel2d<T><<<this->grid, this->block>>>(this->data, value, shape[0], shape[1]);
+    cudaDeviceSynchronize();
+}
+
+template <typename T>
+void Compute2D<T>::fillRandom(unsigned int seed)
+{
+    fillRandomKernel2d<T><<<this->grid, this->block>>>(this->data, shape[0], shape[1], seed);
     cudaDeviceSynchronize();
 }

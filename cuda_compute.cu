@@ -1,5 +1,7 @@
 // #include "include/cuda_compute.h"
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
+
 
 template <typename T>
 __global__ void fillKernel(T* data, T val, int size){
@@ -183,5 +185,26 @@ __global__ void dotGrad(double* grad, double * data, double* outGrad, double* ot
     if (i < size) {
         grad[i] += otherData[i] * outGrad[i];
         otherGrad[i] += data[i] * outGrad[i];
+    }
+}
+
+template <typename T>
+__global__ void fillRandomKernel(T* data, int size, unsigned int seed) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        curandState_t state;
+        curand_init(seed, i, 0, &state);
+        data[i] = curand_uniform(&state);
+    }
+}
+
+template <typename T>
+__global__ void fillRandomKernel2d(T* data, size_t x, size_t y, unsigned int seed) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        curandState_t state;
+        curand_init(seed, i * y + j, 0, &state);
+        data[i * y + j] = curand_uniform(&state);
     }
 }

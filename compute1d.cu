@@ -1,6 +1,5 @@
 #include <iostream> 
 #include "include/compute1d.h"
-// #include "include/cuda_compute.h"
 #include "cuda_compute.cu"
 #include <stdexcept>
 using namespace std;
@@ -157,5 +156,10 @@ T* Compute1D<T>::tanh(){
 template <typename T>
 void Compute1D<T>::fill(T val){
     fillKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, val, size);
+    cudaDeviceSynchronize();
+}
+template <typename T>
+void Compute1D<T>::fillRandom(unsigned int seed){
+    fillRandomKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, size, seed);
     cudaDeviceSynchronize();
 }
