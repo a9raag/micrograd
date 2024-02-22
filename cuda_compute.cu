@@ -1,6 +1,6 @@
+// #include "include/cuda_compute.h"
 #include <cuda_runtime.h>
-#include <vector> 
-#include <math.h>
+
 template <typename T>
 __global__ void fillKernel(T* data, T val, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -9,11 +9,12 @@ __global__ void fillKernel(T* data, T val, int size){
     }
 }
 
-__global__ void set_ones2d(double** grad, int *size){
+template <typename T>
+__global__ void fillKernel2d(T* data, T val, size_t x, size_t y) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
-    if (i < size[0] && j < size[1]) {
-        grad[i][j] = 1.0;
+    if (i < x && j < y) {
+        data[i * y + j] = val;
     }
 }
 
@@ -22,6 +23,15 @@ __global__ void powKernel(T* a, T *out, double n, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
         out[i] = pow(a[i], n);
+    }
+}
+
+template <typename T> 
+__global__ void powKernel2d(T* a, T* out, double n, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        out[i * y + j] = pow(a[i * y + j], n);
     }
 }
 
@@ -41,6 +51,16 @@ __global__ void tanhKernel(T* data, T* out, int size){
     }
 }
 
+template <typename T> 
+__global__ void tanhKernel2d(T* data, T* out, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x; 
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y){
+        double x = data[i * y + j]; 
+        out[i * y + j] = (exp(2.0 * x) - 1.0) / (exp(2.0 * x) + 1.0);
+    }    
+}
+
 __global__ void gradTanh(double* grad, double* outGrad, double* data, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
@@ -48,6 +68,7 @@ __global__ void gradTanh(double* grad, double* outGrad, double* data, int size){
         grad[i] += (1.0 - pow(t, 2)) * outGrad[i];
     }
 }
+
 template<typename T>
 __global__ void addKernel(T* a, T* b, T* c, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -64,6 +85,24 @@ __global__ void addKernel(T* a, double b, T* c, int size) {
     }
 }
 
+template <typename T>
+__global__ void addKernel2d(T* a, T* b, T* c, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        c[i * y + j] = a[i * y + j] + b[i * y + j];
+    }
+}
+
+template <typename T>
+__global__ void addKernel2d(T* a, double b, T* c, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        c[i * y + j] = a[i * y + j] + b;
+    }
+}
+
 __global__ void addGrad(double* grad, double* outGrad, double* otherGrad, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
@@ -73,10 +112,59 @@ __global__ void addGrad(double* grad, double* outGrad, double* otherGrad, int si
 }
 
 template<typename T>
-__global__ void dotKernel(T* data, T* other, T* result, int size) {
+__global__ void mulKernel(T* data, T* other, T* result, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
         result[i] = data[i] * other[i];
+    }
+}
+
+template <typename T> 
+__global__ void mulKernel(T* data, double other, T* result, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        result[i] = data[i] * other;
+    }
+}
+
+template <typename T>
+__global__ void mulKernel2d(T* data, T* other, T* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[i * y + j] * other[i * y + j];
+    }
+}
+
+template <typename T>
+__global__ void mulKernel2d(T* data, double other, T* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[i * y + j] * other;
+    }
+}
+
+template<typename T> 
+__global__ void dotKernel(T* data, T* other, T* result, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        result[i] += data[i] * other[i];
+    }
+}
+
+
+template <typename T>
+__global__ void matrixDotProduct(T *a, T *b, T *result, size_t widthA, size_t heightA, size_t widthB) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < heightA && col < widthB) {
+        T sum = 0.0;
+        for (int k = 0; k < widthA; ++k) {
+            sum += a[row * widthA + k] * b[k * widthB + col];
+        }
+        result[row * widthB + col] = sum;
     }
 }
 
