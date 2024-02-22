@@ -2,17 +2,10 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include <iostream>
-#include <functional>   
+#include "tensor.h"
+#include <functional>
 #include <set>
-#include <unordered_set>
-#include <memory>
-#include <list>
-#include <math.h>
-#include <random>
-#include "../tensor.cu"
-#include <vector>
-#include <string>
+
 using namespace std;
 
 class Value: public std::enable_shared_from_this<Value>
@@ -30,11 +23,7 @@ public:
     //default constructor
     Value();
     // Constructor
-    // Value(const Tensor<double> data, std::initializer_list<Value> children, string op, string label);
     Value(Tensor<double> data, std::initializer_list<shared_ptr<Value>> children, string op, string label);
-    // Value(const Tensor<T> &data, std::initializer_list<shared_ptr<Value<T>>> children, string op, string label);
-    
-    // Value(Tensor<T> &data, std::initializer_list<shared_ptr<Value<T>>> children, string op, string label);
     //copy constructor
     Value(const Value &other);
     //move constructor
@@ -55,7 +44,7 @@ public:
     shared_ptr<Value> neg();
     shared_ptr<Value> operator+(const shared_ptr<Value> &other);
     shared_ptr<Value> operator*(const shared_ptr<Value> &other);
-    
+    shared_ptr<Value> dot(const shared_ptr<Value> &other);
     shared_ptr<Value> operator-(const std::shared_ptr<Value>& other);
     shared_ptr<Value> operator/(const shared_ptr<Value> &other);
 
