@@ -1,7 +1,6 @@
 #include "include/tensor.h"
 #include "include/compute1d.h"
 #include "include/compute2d.h"
-#include "tensor.h"
 // #include <compute1d.h>
 // #include <compute2d.h>
 
@@ -31,7 +30,8 @@ Tensor<T>::Tensor(vector<size_t> shape) {
     this->shape = shape;
     this->size = 1;
     for (size_t dim : shape) {
-        if (dim == 0) throw std::invalid_argument("Dimension size cannot be zero.");
+        if (dim == 0) 
+            throw std::invalid_argument("Dimension size cannot be zero.");
         size *= dim;
     }
 
@@ -175,12 +175,12 @@ ostream& operator<<(ostream& os, const Tensor<T>& t) {
     return os;
 }
 
-template <typename T>
-Tensor<T> Tensor<T>::neg() {
-    Tensor<T> result = Tensor<T>(shape);
-    result.setData(dataCompute->neg());
-    return result;
-}
+// template <typename T>
+// Tensor<T> Tensor<T>::neg() {
+//     Tensor<T> result = Tensor<T>(shape);
+//     result.setData(dataCompute->neg());
+//     return result;
+// }
 
 template <typename T>
 Tensor<T> Tensor<T>::neg() const {
@@ -204,12 +204,61 @@ Tensor<T> Tensor<T>::tanh(){
 }
 
 template <typename T>
-void Tensor<T>::fill(T val){
+Tensor<T> Tensor<T>::fill(T val){
     dataCompute->fill(val);
+    return *this;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::dot(Tensor &other){
+    if (ndims == 1 || other.ndims == 1){
+        Tensor<T> result = Tensor<T>({1});
+        T* c = dataCompute->dot(other.dataCompute->getData(), shape.data(), size);
+        result.setData(c);
+        
+        return result;
+
+    }
+    if (shape[1] != other.shape[0]){
+        throw std::invalid_argument("Dot product is only defined for tensors with matching inner dimensions.");
+    }
+    vector<size_t> newShape = {shape[0], other.shape[1]};
+    Tensor<T> result = Tensor<T>(newShape);
+    vector<size_t> compute_shape = {shape[0], shape[1], other.shape[1]};
+    T* c = dataCompute->dot(other.dataCompute->getData(), compute_shape.data(), result.size);
+    result.setData(c);
+    return result;
+}
+
+
+template <typename T>
+Tensor<T> Tensor<T>::operator+(const Tensor& other){
+    if (other.size == 1 ){
+        return *this + (double) other.dataCompute->getData()[0];
+    }
+    if (shape != other.shape){
+        throw std::invalid_argument("Tensors must have the same shape to be added.");
+    }
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
+    result.setData(c);
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::operator+(const double other)
+{
+    Tensor<T> result = Tensor<T>(shape);
+    T* c = dataCompute->add(other);
+    result.setData(c);
+    return result;
 }
 
 template <typename T>
 Tensor<T> Tensor<T>::operator*(const Tensor &other){ 
+    if (other.size == 1 ){
+        return *this * (double) other.dataCompute->getData()[0];
+    }
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->mul(other.dataCompute->getData(), shape.data(), size);
     result.setData(c);
@@ -224,42 +273,14 @@ Tensor<T> Tensor<T>::operator*(const double other){
     return result;
 }   
 
-template <typename T>
-Tensor<T> Tensor<T>::dot(Tensor &other){
-    if (shape.size() != 2 || other.shape.size() != 2){
-        throw std::invalid_argument("Dot product is only defined for 2D tensors.");
-    }
-    if (shape[1] != other.shape[0]){
-        throw std::invalid_argument("Dot product is only defined for tensors with matching inner dimensions.");
-    }
-    vector<size_t> newShape = {shape[0], other.shape[1]};
-    Tensor<T> result = Tensor<T>(newShape);
-    vector<size_t> compute_shape = {shape[0], shape[1], other.shape[1]};
-    T* c = dataCompute->dot(other.dataCompute->getData(), compute_shape.data(), result.size);
-    result.setData(c);
-    return result;
-}
+
 
 template <typename T>
 Tensor<T> Tensor<T>::operator/(Tensor &other){
     return *this * other.pow(-1);
 }
 
-template <typename T>
-Tensor<T> Tensor<T>::operator+(const Tensor& other){
-    Tensor<T> result = Tensor<T>(shape);
-    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
-    result.setData(c);
-    return result;
-}
 
-template <typename T>
-Tensor<T> Tensor<T>::operator+(const Tensor& other) const{
-    Tensor<T> result = Tensor<T>(shape);
-    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
-    result.setData(c);
-    return result;
-}
 
 template <typename T>
 Tensor<T> operator+(const Tensor<T>& t1, const Tensor<T>& t2) {
@@ -285,3 +306,16 @@ template <typename T>
 Tensor<T> operator/(const Tensor<T>& t1, const Tensor<T>& t2) {
     return t1 * t2.pow(-1);
 }
+
+template <typename T>
+Tensor<T> operator*(const Tensor<T> &t1, const double t2)
+{
+    return t1 * t2;
+}
+
+template <typename T>
+Tensor<T> operator+(const Tensor<T> &t1, const double t2)
+{
+    return t1 + t2;
+}
+

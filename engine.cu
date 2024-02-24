@@ -88,21 +88,42 @@ shared_ptr<Value> Value::tanh(){
     };
     return out;
 }
+
+shared_ptr<Value> Value::operator+(const double &other)
+{
+    Tensor<double> other_tensor = Tensor<double>(this->data.shape).fill(other);
+    auto other_val = make_shared<Value>(other_tensor, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
+    return shared_from_this() + other_val;
+}
+
 shared_ptr<Value> Value::operator+(const shared_ptr<Value> &other)
 {
+    
     auto out = make_shared<Value>(data + other->data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "+", label);
     out->node_backward = [this, &out, other]() mutable
-    {
+    {  
         this->grad = this->grad +  out->grad * 1.0;
         other->grad = other->grad + out->grad * 1.0;
     };
     return out;
     
 }
-std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
+std::shared_ptr<Value> operator+(const std::shared_ptr<Value> &lhs, const double &rhs)
+{
+    return (*lhs) + rhs;
+}
+std::shared_ptr<Value> operator+(const std::shared_ptr<Value> &lhs, const std::shared_ptr<Value> &rhs)
+{
     return (*lhs) + rhs;
 }
 
+shared_ptr<Value> Value::operator-(const double &other)
+{
+    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    other_data.fill(other);
+    auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
+    return shared_from_this() - other_val;
+}
 
 shared_ptr<Value> Value::operator-(const shared_ptr<Value> &other)
 {
@@ -111,6 +132,14 @@ shared_ptr<Value> Value::operator-(const shared_ptr<Value> &other)
 
 std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
     return (*lhs) - rhs;
+}
+
+shared_ptr<Value> Value::operator*(const double &other)
+{
+    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    other_data.fill(other);
+    auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
+    return shared_from_this() * other_val;
 }
 
 shared_ptr<Value> Value::operator*(const shared_ptr<Value> &other)
@@ -130,15 +159,28 @@ std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const std::s
 shared_ptr<Value> Value::dot(const shared_ptr<Value> &other)
 {
     auto out = make_shared<Value>(data.dot(other->data), std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "dot", label);
-    out->node_backward = [this, &out, other]() mutable
+    out->node_backward = [this, out, other]() mutable
     {
-        this->grad = this->grad +  out->grad * other->data;
-        other->grad = other->grad + out->grad * this->data;
+        
+        auto d = out->grad * other->data;
+        
+        this->grad = this->grad +  d;
+        d =  out->grad * this->data;
+        other->grad = other->grad + d;
     };
     return out;
 }
 
-shared_ptr<Value> Value::operator/(const shared_ptr<Value> &other){
+shared_ptr<Value> Value::operator/(const double &other)
+{
+    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    other_data.fill(other);
+    auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
+    return shared_from_this() / other_val;
+}
+
+shared_ptr<Value> Value::operator/(const shared_ptr<Value> &other)
+{
     return shared_from_this() * other->pow(-1);
 }
 
@@ -151,7 +193,6 @@ std::ostream &operator<<(std::ostream &os, const shared_ptr<Value> &v)
 {
     //handle null ptr 
     if(v == NULL){
-        cout<<"v is null"<<endl;
         throw "v is null";
     }
     os << "Value(data=" << v->getData() << ", grad=" << v->getGrad() << ", op=" << v->op << ")";
@@ -162,7 +203,6 @@ void Value::backward()
 {
     std::list<shared_ptr<Value>> topo;
     std::set<shared_ptr<Value>> visited;
-    visited.end();
     std::function<void(const shared_ptr<Value>&)> build_topo = [&](const shared_ptr<Value> &v)
     {
         if (visited.count(v) == 0)

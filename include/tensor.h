@@ -46,14 +46,14 @@ public:
     Tensor neg() const;
     Tensor pow(double n);
     Tensor tanh();
-    void fill(T val);
+    Tensor fill(T val);
+    Tensor dot(Tensor &other);
 
     Tensor operator*(const Tensor &other);
     Tensor operator*(const double other);
-    Tensor dot(Tensor &other);
     Tensor operator/(Tensor &other);
     Tensor operator+(const Tensor& other);
-    Tensor operator+(const Tensor& other) const;
+    Tensor operator+(const double other);
     Tensor operator-(const Tensor &other);
 
     template <typename U>
@@ -70,6 +70,12 @@ public:
 
     template <typename U>
     friend Tensor operator/(const Tensor<U>& t1, const Tensor<U>& t2);
+
+    template <typename U>
+    friend Tensor operator*(const Tensor<U>& t1, const double t2);
+
+    template <typename U>
+    friend Tensor operator+(const Tensor<U>& t1, const double t2);
 };
 
 #endif // TENSOR_H
