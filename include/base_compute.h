@@ -8,7 +8,7 @@ template <typename T>
 class BaseCompute {
 public:
     virtual T* add(T* b, size_t* shape, size_t size) = 0;
-    virtual T* add(double b, size_t* shape, size_t size) = 0;
+    virtual T* add(double b) = 0;
     virtual T* mul(T* b, size_t* shape, size_t size) = 0;
     virtual T* mul(double b) = 0;
     virtual T* dot(T* b, size_t* shape, size_t size) = 0;

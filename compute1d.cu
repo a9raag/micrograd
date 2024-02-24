@@ -1,7 +1,10 @@
 #include <iostream> 
 #include "include/compute1d.h"
 #include "cuda_compute.cu"
+#include <thrust/device_vector.h>
+
 #include <stdexcept>
+
 using namespace std;
 
 template <typename T>
@@ -62,7 +65,7 @@ T* Compute1D<T>::add(T* b, size_t* shape, size_t size) {
 }
 
 template <typename T>
-T* Compute1D<T>::add(double b, size_t* shape, size_t size) {
+T* Compute1D<T>::add(double b) {
     T* c;  
     if(cudaMallocManaged(&c, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -75,18 +78,31 @@ T* Compute1D<T>::add(double b, size_t* shape, size_t size) {
 
 template <typename T>
 T* Compute1D<T>::dot(T* b, size_t* shape, size_t size){ 
-    dim3 blockDim(16, 16);
-    dim3 gridDim((shape[0] + blockDim.x - 1) / blockDim.x, (shape[1] + blockDim.y - 1) / blockDim.y);
     T *c; 
     
     if(cudaMallocManaged(&c, size * sizeof(T)) != cudaSuccess){
         cout<<"1dcompute:dot: Error in allocating memory"<<endl;
         throw runtime_error("1dcompute:dot Error in allocating memory");
     }
-    dotKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, b, c, size);
-    // dotKernel2d<<<gridDim, blockDim>>>(this->data, b, c, shape[0], shape[1]);
+    mulKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, b, c, size);
+    thrust::device_vector<T> d_vec(c, c + size);
+    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<double>());
+    
+    T* out = new T[1];
+    if(cudaMallocManaged(&out, size * sizeof(T)) != cudaSuccess){
+        cout<<"1dcompute:dot: Error in allocating memory"<<endl;
+        throw runtime_error("1dcompute:dot Error in allocating memory");
+    }
+    out[0] = sum;
+
+    
+
+    cudaFree(c);
     cudaDeviceSynchronize();
-    return c;
+    // dotKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, b, c, size);
+    // dotKernel2d<<<gridDim, blockDim>>>(this->data, b, c, shape[0], shape[1]);
+    
+    return out;
 
 }
 

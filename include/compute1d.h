@@ -22,7 +22,7 @@ public:
     Compute1D(long size);
     Compute1D(std::vector<T> hdata, int size);
     T* add(T* b, size_t* shape, size_t size);
-    T* add(double b, size_t* shape, size_t size);
+    T* add(double b);
     T* dot(T* b, size_t* shape, size_t size);
     T* dot(double b, size_t* shape, size_t size);
     T* mul(T* b, size_t* shape, size_t size);

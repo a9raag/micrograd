@@ -23,7 +23,7 @@ public:
     void setData(T* data);
     Compute2D(int x, int y);
     T* add(T* b, size_t* shape, size_t size);
-    T* add(double b, size_t* shape, size_t size);
+    T* add(double b);
     T* dot(T* b, size_t* shape, size_t size);
     T* mul(T* b, size_t* shape, size_t size);
     T* mul(double b);

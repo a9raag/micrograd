@@ -62,7 +62,7 @@ T* Compute2D<T>::add(T* b, size_t* shape, size_t size){
 }
 
 template <typename T>
-T*  Compute2D<T>::add(double b, size_t* shape, size_t size){
+T*  Compute2D<T>::add(double b){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -104,16 +104,16 @@ T* Compute2D<T>::mul(double b){
 }
 
 template <typename T>
-T* Compute2D<T>::dot(T* b, size_t* shape, size_t size){
+T* Compute2D<T>::dot(T* b, size_t* compute_shape, size_t size){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    size_t heightA = shape[0];
-    size_t widthA = shape[1];
-    size_t widthB = shape[2];
+    size_t heightA = compute_shape[0];
+    size_t widthA = compute_shape[1];
+    size_t widthB = compute_shape[2];
     // dotKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
     matrixDotProduct<<<this->grid, this->block>>>(this->data, b, result, widthA, heightA, widthB);
     cudaDeviceSynchronize();
