@@ -32,7 +32,7 @@ Compute2D<T>::Compute2D(int x, int y){
     this->shape[1] = y;
     int allocSize = this->size * sizeof(T);
 
-    this->block = dim3(32, 32);
+    this->block = dim3(x, y);
     this->grid = dim3((x + this->block.x - 1) / this->block.x, (y + this->block.y - 1) / this->block.y);
     
     if(cudaMallocManaged(&this->data, allocSize) != cudaSuccess){
@@ -46,7 +46,7 @@ Compute2D<T>::Compute2D(int x, int y){
 }
 
 template <typename T>
-T* Compute2D<T>::add(T* b, size_t* shape, size_t size){
+T* Compute2D<T>::add(BaseCompute<T>& compute){
     // if (size != this->size){
     //     throw invalid_argument("Size of the two arrays must be the same");
     // }
@@ -56,7 +56,7 @@ T* Compute2D<T>::add(T* b, size_t* shape, size_t size){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    addKernel2d<<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
+    addKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
     cudaDeviceSynchronize();
     return result;
 }
@@ -75,7 +75,7 @@ T*  Compute2D<T>::add(double b){
 }
 
 template <typename T>
-T* Compute2D<T>::mul(T* b, size_t* shape, size_t size){
+T* Compute2D<T>::mul(BaseCompute<T>& compute){
     if (size != this->size){
         throw invalid_argument("Size of the two arrays must be the same");
     }
@@ -85,7 +85,7 @@ T* Compute2D<T>::mul(T* b, size_t* shape, size_t size){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    mulKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
+    mulKernel2d<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
     cudaDeviceSynchronize();
     return result;
 }
@@ -104,18 +104,18 @@ T* Compute2D<T>::mul(double b){
 }
 
 template <typename T>
-T* Compute2D<T>::dot(T* b, size_t* compute_shape, size_t size){
+T* Compute2D<T>::dot(BaseCompute<T>& compute){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    size_t heightA = compute_shape[0];
-    size_t widthA = compute_shape[1];
-    size_t widthB = compute_shape[2];
+    size_t heightA = shape[0];
+    size_t widthA = shape[1];
+    size_t widthB = compute.getShape()[1];
     // dotKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
-    matrixDotProduct<<<this->grid, this->block>>>(this->data, b, result, widthA, heightA, widthB);
+    matrixDotProduct<<<this->grid, this->block>>>(this->data, compute.getData(), result, widthA, heightA, widthB);
     cudaDeviceSynchronize();
     return result;
 }

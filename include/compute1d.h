@@ -13,6 +13,7 @@ private:
     int allocSize;
     long size; 
     T* data;
+    size_t shape[1];
 
 public:
     Compute1D();
@@ -21,16 +22,19 @@ public:
     void setData(T* data);
     Compute1D(long size);
     Compute1D(std::vector<T> hdata, int size);
-    T* add(T* b, size_t* shape, size_t size);
+    T* add(BaseCompute<T>& compute);
     T* add(double b);
-    T* dot(T* b, size_t* shape, size_t size);
+    T* dot(BaseCompute<T>& compute);
     T* dot(double b, size_t* shape, size_t size);
-    T* mul(T* b, size_t* shape, size_t size);
+    T* mul(BaseCompute<T>& compute);
     T* mul(double b);
     T* pow(double n);
     T* tanh();
     void fill(T val);
     void fillRandom(unsigned int seed);
+    size_t* getShape() {
+        return this->shape;
+    }
 };
 
 #endif // COMPUTE1D_H

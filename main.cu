@@ -19,7 +19,7 @@ void test_compute(){
     int * c;
     size_t* shape = new size_t[1];
     shape[0] = 3;
-    c = a.add(b.getData(), shape , 3);
+    c = a.add(b);
 
     cout<<"C:"<<endl;
     for(int i = 0; i < _a.size(); i++){
@@ -383,6 +383,16 @@ void test_value_broadcast(){
     auto val_c = val_a + 1.0;
     cout<<"val_c: val_a + 1.0"<<endl;
     cout<<val_c->getData()<<endl;
+
+    Tensor<double> row = Tensor<double>({1, 3});
+    row(0,0) = 1;
+    row(0,1) = 2;
+    row(0,2) = 3;
+    auto val_row = std::make_shared<Value>(row);
+    auto val_d = val_a + val_row;
+    cout<<"val_d: val_a + val_row"<<endl;
+    cout<<val_d->getData()<<endl;
+
     cout<<"END: Test Value Broadcast"<<endl;
 
 }
@@ -406,12 +416,12 @@ void test_neuron(){
 }
 
 int main(int argc, char const *argv[]){
-    // test_tensor_1d();
-    // test_tensor_2d();
-    // test_value2d();
-    // test_backprop();
-    // test_random();
-    // test_value_broadcast();
+    test_tensor_1d();
+    test_tensor_2d();
+    test_value2d();
+    test_backprop();
+    test_random();
+    test_value_broadcast();
     test_neuron();
     return 0;
 

@@ -213,7 +213,7 @@ template <typename T>
 Tensor<T> Tensor<T>::dot(Tensor &other){
     if (ndims == 1 || other.ndims == 1){
         Tensor<T> result = Tensor<T>({1});
-        T* c = dataCompute->dot(other.dataCompute->getData(), shape.data(), size);
+        T* c = dataCompute->dot(*other.dataCompute);
         result.setData(c);
         
         return result;
@@ -225,7 +225,7 @@ Tensor<T> Tensor<T>::dot(Tensor &other){
     vector<size_t> newShape = {shape[0], other.shape[1]};
     Tensor<T> result = Tensor<T>(newShape);
     vector<size_t> compute_shape = {shape[0], shape[1], other.shape[1]};
-    T* c = dataCompute->dot(other.dataCompute->getData(), compute_shape.data(), result.size);
+    T* c = dataCompute->dot(*other.dataCompute);
     result.setData(c);
     return result;
 }
@@ -236,11 +236,11 @@ Tensor<T> Tensor<T>::operator+(const Tensor& other){
     if (other.size == 1 ){
         return *this + (double) other.dataCompute->getData()[0];
     }
-    if (shape != other.shape){
-        throw std::invalid_argument("Tensors must have the same shape to be added.");
-    }
+    // if (shape != other.shape){
+    //     throw std::invalid_argument("Tensors must have the same shape to be added.");
+    // }
     Tensor<T> result = Tensor<T>(shape);
-    T* c = dataCompute->add(other.dataCompute->getData(), shape.data(), size);
+    T* c = dataCompute->add(*other.dataCompute);
     result.setData(c);
     return result;
 }
@@ -260,7 +260,7 @@ Tensor<T> Tensor<T>::operator*(const Tensor &other){
         return *this * (double) other.dataCompute->getData()[0];
     }
     Tensor<T> result = Tensor<T>(shape);
-    T* c = dataCompute->mul(other.dataCompute->getData(), shape.data(), size);
+    T* c = dataCompute->mul(*other.dataCompute);
     result.setData(c);
     return result;
 }
