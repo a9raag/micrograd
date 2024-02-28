@@ -56,7 +56,14 @@ T* Compute2D<T>::add(BaseCompute<T>& compute){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    addKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    if(compute.getShape()[0] == 1 && compute.getShape()[1] == shape[1]){
+        addKernel2dRowWise<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    }
+    else if(compute.getShape()[0] == shape[0] && compute.getShape()[1] == 1){
+        addKernel2dColWise<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    }
+    else
+        addKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
     cudaDeviceSynchronize();
     return result;
 }
@@ -85,7 +92,14 @@ T* Compute2D<T>::mul(BaseCompute<T>& compute){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    mulKernel2d<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    if(compute.getShape()[0] == 1 && compute.getShape()[1] == shape[1])
+        mulKernel2dRowWise<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+
+    else if(compute.getShape()[0] == shape[0] && compute.getShape()[1] == 1)
+        mulKernel2dColWise<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+
+    else
+        mulKernel2d<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
     cudaDeviceSynchronize();
     return result;
 }
@@ -98,6 +112,7 @@ T* Compute2D<T>::mul(double b){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
+
     mulKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
     cudaDeviceSynchronize();
     return result;
@@ -111,11 +126,17 @@ T* Compute2D<T>::dot(BaseCompute<T>& compute){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
+
+    if (shape[1] != compute.getShape()[0]){
+        throw invalid_argument("Width of the first array must be equal to the height of the second array");
+    }
+    
     size_t heightA = shape[0];
     size_t widthA = shape[1];
     size_t widthB = compute.getShape()[1];
-    // dotKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
-    matrixDotProduct<<<this->grid, this->block>>>(this->data, compute.getData(), result, widthA, heightA, widthB);
+
+
+    dotKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, widthA, heightA, widthB);
     cudaDeviceSynchronize();
     return result;
 }

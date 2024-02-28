@@ -50,7 +50,7 @@ public:
     Tensor dot(Tensor &other);
 
     Tensor operator*(const Tensor &other);
-    Tensor operator*(const double other);
+    Tensor operator*(const double &other);
     Tensor operator/(Tensor &other);
     Tensor operator+(const Tensor& other);
     Tensor operator+(const double other);
@@ -72,10 +72,10 @@ public:
     friend Tensor operator/(const Tensor<U>& t1, const Tensor<U>& t2);
 
     template <typename U>
-    friend Tensor operator*(const Tensor<U>& t1, const double t2);
+    friend Tensor operator*(const Tensor<U>& t1, const double& t2);
 
     template <typename U>
-    friend Tensor operator+(const Tensor<U>& t1, const double t2);
+    friend Tensor operator+(const Tensor<U>& t1, const double& t2);
 };
 
 #endif // TENSOR_H

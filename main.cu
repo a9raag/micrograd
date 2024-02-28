@@ -389,11 +389,12 @@ void test_value_broadcast(){
     row(0,1) = 2;
     row(0,2) = 3;
     auto val_row = std::make_shared<Value>(row);
-    auto val_d = val_a + val_row;
+    cout<<"val_row: "<<val_row->getData()<<endl;
+    auto val_d = val_a + val_row * 10;
     cout<<"val_d: val_a + val_row"<<endl;
     cout<<val_d->getData()<<endl;
 
-    cout<<"END: Test Value Broadcast"<<endl;
+ 
 
 }
 

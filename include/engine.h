@@ -38,8 +38,6 @@ public:
     Tensor<double> getGrad();
 
     void set_grad_1();
-    Value operator+(Value &other);
-    bool operator<(const Value &other);
     shared_ptr<Value> tanh();
     shared_ptr<Value> neg();
 

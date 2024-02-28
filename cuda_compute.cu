@@ -89,7 +89,7 @@ __global__ void addKernel(T* a, double b, T* c, int size) {
 
 template <typename T>
 __global__ void addKernel2d(T* a, T* b, T* c, size_t x, size_t y) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     if (i < x && j < y) {
         c[i * y + j] = a[i * y + j] + b[i * y + j];
@@ -102,6 +102,25 @@ __global__ void addKernel2d(T* a, double b, T* c, size_t x, size_t y) {
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     if (i < x && j < y) {
         c[i * y + j] = a[i * y + j] + b;
+    }
+}
+
+template <typename T> 
+__global__ void addKernel2dRowWise(T* a, T* b, T* c, size_t x, size_t y) { 
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        c[i * y + j] = a[i * y + j] + b[j];
+    }
+    
+}
+
+template <typename T>
+__global__ void addKernel2dColWise(T* a, T* b, T* c, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        c[i * y + j] = a[i * y + j] + b[i];
     }
 }
 
@@ -121,6 +140,7 @@ __global__ void mulKernel(T* data, T* other, T* result, int size) {
     }
 }
 
+
 template <typename T> 
 __global__ void mulKernel(T* data, double other, T* result, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -135,6 +155,23 @@ __global__ void mulKernel2d(T* data, T* other, T* result, size_t x, size_t y) {
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     if (i < x && j < y) {
         result[i * y + j] = data[i * y + j] * other[i * y + j];
+    }
+}
+
+template <typename T> 
+__global__ void mulKernel2dRowWise(T* data, T* other, T* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[i * y + j] * other[j];
+    }
+}
+
+__global__ void mulKernel2dColWise(double* data, double* other, double* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[i * y + j] * other[i];
     }
 }
 
@@ -157,7 +194,7 @@ __global__ void dotKernel(T* data, T* other, T* result, int size) {
 
 
 template <typename T>
-__global__ void matrixDotProduct(T *a, T *b, T *result, size_t widthA, size_t heightA, size_t widthB) {
+__global__ void dotKernel2d(T *a, T *b, T *result, size_t widthA, size_t heightA, size_t widthB) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
