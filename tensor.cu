@@ -186,7 +186,7 @@ template <typename T>
 Tensor<T> Tensor<T>::neg() const {
     Tensor<T> result = Tensor<T>(shape);
     result.setData(dataCompute->neg());
-    return result;
+    return result;  
 }
 
 template <typename T>
@@ -266,7 +266,7 @@ Tensor<T> Tensor<T>::operator*(const Tensor &other){
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator*(const double other){ 
+Tensor<T> Tensor<T>::operator*(const double &other){ 
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->mul(other);
     result.setData(c);
@@ -308,13 +308,13 @@ Tensor<T> operator/(const Tensor<T>& t1, const Tensor<T>& t2) {
 }
 
 template <typename T>
-Tensor<T> operator*(const Tensor<T> &t1, const double t2)
+Tensor<T> operator*(const Tensor<T> &t1, const double& t2)
 {
     return t1 * t2;
 }
 
 template <typename T>
-Tensor<T> operator+(const Tensor<T> &t1, const double t2)
+Tensor<T> operator+(const Tensor<T> &t1, const double& t2)
 {
     return t1 + t2;
 }

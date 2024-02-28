@@ -134,6 +134,10 @@ std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const std::s
     return (*lhs) - rhs;
 }
 
+std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const double& rhs) {
+    return (*lhs) - rhs;
+}
+
 shared_ptr<Value> Value::operator*(const double &other)
 {
     Tensor<double> other_data = Tensor<double>(this->data.shape);
@@ -155,6 +159,14 @@ shared_ptr<Value> Value::operator*(const shared_ptr<Value> &other)
 std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
     return (*lhs) * rhs;
 }
+
+
+std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const double& rhs) {
+    return (*lhs) * rhs;
+}
+
+
+
 
 shared_ptr<Value> Value::dot(const shared_ptr<Value> &other)
 {
@@ -185,6 +197,10 @@ shared_ptr<Value> Value::operator/(const shared_ptr<Value> &other)
 }
 
 std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) {
+    return (*lhs) / rhs;
+}
+
+std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const double& rhs) {
     return (*lhs) / rhs;
 }
 

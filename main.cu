@@ -394,7 +394,22 @@ void test_value_broadcast(){
     cout<<"val_d: val_a + val_row"<<endl;
     cout<<val_d->getData()<<endl;
 
- 
+    Tensor<double> column = Tensor<double>({3, 1});
+    column(0,0) = 100;
+    column(1,0) = 200;
+    column(2,0) = 300;
+
+    auto val_column = std::make_shared<Value>(column);
+    cout<<"val_column: \n"<<val_column->getData()<<endl;
+    auto val_e = val_a + val_column;
+    cout<<"val_e: val_a + val_column"<<endl;
+    cout<<val_e->getData()<<endl;
+
+    auto val_f = val_a->dot(val_column);
+    cout<<"val_f: val_a.dot(val_column)"<<endl;
+    cout<<val_f->getData()<<endl;
+
+    cout<<"END: Test Value Broadcast"<<endl;
 
 }
 
