@@ -412,23 +412,98 @@ void test_value_broadcast(){
     cout<<"END: Test Value Broadcast"<<endl;
 
 }
+void test_gradient(){
+    cout<<"=========================="<<endl;
+    cout<<"START: Test Gradient"<<endl;
+    cout<<"=========================="<<endl;
+    Tensor<double> a = Tensor<double>({3, 3});
+    Tensor<double> b = Tensor<double>({3, 3});
+    a(0,0) = 1;
+    a(0,1) = 2;
+    a(0,2) = 3;
+    a(1,0) = 4;
+    a(1,1) = 5;
+    a(1,2) = 6;
+    a(2,0) = 7;
+    a(2,1) = 8;
+    a(2,2) = 9;
 
-void test_neuron(){
+    b(0,0) = 10;
+    b(0,1) = 20;
+    b(0,2) = 30;
+    b(1,0) = 40;
+    b(1,1) = 50;
+    b(1,2) = 60;
+    b(2,0) = 70;
+    b(2,1) = 80;
+    b(2,2) = 90;
+    cout<<"a"<<endl;
+    cout<<a<<endl;
+    cout<<"b"<<endl;
+    cout<<b<<endl;
+
+    auto val_a = std::make_shared<Value>(a);
+    auto val_b = std::make_shared<Value>(b);
+    auto val_c = val_a + val_b;
+    cout<<"val_c: val_a + val_b"<<endl;
+    cout<<val_c->getData()<<endl;
+
+    val_c->set_grad_1();
+    val_c->backward();
+    cout<<"val_a grad"<<endl;
+    cout<<val_a->getGrad()<<endl;
+    cout<<"val_b grad"<<endl;
+    cout<<val_b->getGrad()<<endl;
+
+    
+    val_a = std::make_shared<Value>(a);
+    val_b = std::make_shared<Value>(b);
+    auto val_d = val_a->dot(val_b);
+    cout<<"val_d: val_a @ val_b"<<endl;
+    cout<<val_d->getData()<<endl;
+
+    val_d->set_grad_1();
+    val_d->backward();
+    cout<<"val_a grad"<<endl;
+    cout<<val_a->getGrad()<<endl;
+    cout<<"val_b grad"<<endl;
+    cout<<val_b->getGrad()<<endl;
+
+
+    val_a = std::make_shared<Value>(a);
+    val_b = std::make_shared<Value>(b);
+    val_d = val_a * val_b;
+    cout<<"val_d: val_a * val_b"<<endl;
+    cout<<val_d->getData()<<endl;
+
+    val_d->set_grad_1();
+    val_d->backward();
+    cout<<"val_a grad"<<endl;
+    cout<<val_a->getGrad()<<endl;
+    cout<<"val_b grad"<<endl;
+    cout<<val_b->getGrad()<<endl;
+
+    cout<<"END: Test Gradient"<<endl;
+
+}
+void test_layer(){
     cout<<"=========================="<<endl;
-    cout<<"START: Test Neuron"<<endl;
+    cout<<"START: Test Layer"<<endl;
     cout<<"=========================="<<endl;
-    Neuron neuron = Neuron({3});
-    Tensor<double> a = Tensor<double>({3});
-    a(0) = 2.0;
-    a(1) = 3.0;
-    a(2) = -1.0;
+    Tensor<double> a = Tensor<double>({1, 4});
+    a(0, 0) = 2.0;
+    a(0, 1) = 3.0;
+    a(0, 2) = 4.0;
+    a(0, 3) = 1.0;
+
+    Layer layer = Layer({4, 2});
     shared_ptr<Value> x = std::make_shared<Value>(a);
-    auto out = neuron(x);
+    auto out = layer(x);
     out->set_grad_1();
     out->backward();
     cout<<"out: "<<out<<endl;
     cout<<"out grad: "<<out->getGrad()<<endl;
-    cout<<"END: Test Neuron"<<endl;
+    cout<<"END: Test Layer"<<endl;
 }
 
 int main(int argc, char const *argv[]){
@@ -436,9 +511,10 @@ int main(int argc, char const *argv[]){
     test_tensor_2d();
     test_value2d();
     test_backprop();
+    test_gradient();
     test_random();
     test_value_broadcast();
-    test_neuron();
+    test_layer();
     return 0;
 
 }
