@@ -20,6 +20,9 @@ public:
     T* getData();
     void setData(T* data);
     Compute2D(int x, int y);
+
+    T* transpose();
+
     T* add(BaseCompute<T>& compute);
     T* add(double b);
     T* dot(BaseCompute<T>& compute);

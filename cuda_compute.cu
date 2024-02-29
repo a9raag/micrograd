@@ -4,6 +4,15 @@
 
 
 template <typename T>
+__global__ void transposeKernel2d(T* data, T* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[j * x + i] = data[i * y + j];
+    }
+}
+
+template <typename T>
 __global__ void fillKernel(T* data, T val, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
@@ -216,14 +225,6 @@ __global__ void dotKernel(T* data, double other, T* result, int size) {
     }
 }
 
-
-__global__ void dotGrad(double* grad, double * data, double* outGrad, double* otherData, double* otherGrad, int size) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < size) {
-        grad[i] += otherData[i] * outGrad[i];
-        otherGrad[i] += data[i] * outGrad[i];
-    }
-}
 
 template <typename T>
 __global__ void fillRandomKernel(T* data, int size, unsigned int seed) {

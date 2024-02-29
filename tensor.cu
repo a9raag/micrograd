@@ -1,6 +1,7 @@
 #include "include/tensor.h"
 #include "include/compute1d.h"
 #include "include/compute2d.h"
+#include "tensor.h"
 // #include <compute1d.h>
 // #include <compute2d.h>
 
@@ -169,8 +170,10 @@ void Tensor<T>::print_recursive(ostream& os , size_t i, size_t j) const{
     os << "]";
 }
 
+
 template <typename T>
-ostream& operator<<(ostream& os, const Tensor<T>& t) {
+ostream &operator<<(ostream &os, const Tensor<T> &t)
+{
     t.print_recursive(os, 0, 0);
     return os;
 }
@@ -181,6 +184,19 @@ ostream& operator<<(ostream& os, const Tensor<T>& t) {
 //     result.setData(dataCompute->neg());
 //     return result;
 // }
+
+template <typename T>
+Tensor<T> Tensor<T>::transpose()
+{
+    if (ndims != 2)
+    {
+        throw std::invalid_argument("Transpose is only defined for 2D tensors.");
+    }
+    Tensor<T> result = Tensor<T>({shape[1], shape[0]});
+    T* c = dataCompute->transpose();
+    result.setData(c);
+    return result;
+}
 
 template <typename T>
 Tensor<T> Tensor<T>::neg() const {
@@ -273,8 +289,6 @@ Tensor<T> Tensor<T>::operator*(const double &other){
     return result;
 }   
 
-
-
 template <typename T>
 Tensor<T> Tensor<T>::operator/(Tensor &other){
     return *this * other.pow(-1);
@@ -319,3 +333,8 @@ Tensor<T> operator+(const Tensor<T> &t1, const double& t2)
     return t1 + t2;
 }
 
+template <typename T>
+Tensor<T> dot(const Tensor<T> &t1, const Tensor<T> &t2)
+{
+    return t1.dot(t2);
+}

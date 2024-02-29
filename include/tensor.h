@@ -42,6 +42,8 @@ public:
     vector<T> getData();
     void print_recursive(ostream& os , size_t i, size_t j) const;
 
+    Tensor transpose();
+
     Tensor neg();
     Tensor neg() const;
     Tensor pow(double n);
@@ -76,6 +78,9 @@ public:
 
     template <typename U>
     friend Tensor operator+(const Tensor<U>& t1, const double& t2);
+
+    template <typename U>
+    friend Tensor dot(const Tensor<U>& t1, const Tensor<U>& t2);
 };
 
 #endif // TENSOR_H

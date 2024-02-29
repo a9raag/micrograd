@@ -1,9 +1,9 @@
 #include <iostream> 
+#include <sstream>
 #include "include/compute2d.h"
 // #include "include/cuda_compute.h"
 // #include "cuda_compute.cu"
 #include <stdexcept>
-#include "compute2d.h"
 using namespace std;
 
 template <typename T>
@@ -43,6 +43,19 @@ Compute2D<T>::Compute2D(int x, int y){
     }
     cudaDeviceSynchronize();
     
+}
+
+template <typename T>
+T* Compute2D<T>::transpose(){
+    T* result = new T[shape[0] * shape[1]];
+    if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        cout<<cudaGetErrorString(cudaGetLastError())<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    transposeKernel2d<T><<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
+    cudaDeviceSynchronize();
+    return result;
 }
 
 template <typename T>
@@ -128,7 +141,9 @@ T* Compute2D<T>::dot(BaseCompute<T>& compute){
     }
 
     if (shape[1] != compute.getShape()[0]){
-        throw invalid_argument("Width of the first array must be equal to the height of the second array");
+        ostringstream error;
+        error << "Width of the first array " <<shape[1]<< " must be equal to the height of the second array " << compute.getShape()[0];
+        throw invalid_argument(error.str());
     }
     
     size_t heightA = shape[0];

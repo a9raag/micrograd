@@ -149,9 +149,9 @@ shared_ptr<Value> Value::operator*(const double &other)
 shared_ptr<Value> Value::operator*(const shared_ptr<Value> &other)
 {
     auto out = make_shared<Value>(data * other->data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "*", label);
-    out->node_backward = [this, &out, other]() mutable
+    out->node_backward = [this, out, other]() mutable
     {
-        this->grad = this->grad +  out->grad * other->data;
+        this->grad = this->grad + out->grad * other->data;
         other->grad = other->grad + out->grad * this->data;
     };
     return out;
@@ -173,12 +173,9 @@ shared_ptr<Value> Value::dot(const shared_ptr<Value> &other)
     auto out = make_shared<Value>(data.dot(other->data), std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "dot", label);
     out->node_backward = [this, out, other]() mutable
     {
-        
-        auto d = out->grad * other->data;
-        
-        this->grad = this->grad +  d;
-        d =  out->grad * this->data;
-        other->grad = other->grad + d;
+        auto otherDataT = other->data.transpose();
+        this->grad = this->grad +  out->grad.dot(otherDataT);
+        other->grad = other->grad + this->data.transpose().dot(out->grad);
     };
     return out;
 }
