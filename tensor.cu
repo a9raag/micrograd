@@ -1,9 +1,6 @@
 #include "include/tensor.h"
 #include "include/compute1d.h"
 #include "include/compute2d.h"
-#include "tensor.h"
-// #include <compute1d.h>
-// #include <compute2d.h>
 
 using namespace std;
 // get Compute Type from shape
@@ -177,13 +174,6 @@ ostream &operator<<(ostream &os, const Tensor<T> &t)
     t.print_recursive(os, 0, 0);
     return os;
 }
-
-// template <typename T>
-// Tensor<T> Tensor<T>::neg() {
-//     Tensor<T> result = Tensor<T>(shape);
-//     result.setData(dataCompute->neg());
-//     return result;
-// }
 
 template <typename T>
 Tensor<T> Tensor<T>::transpose()
