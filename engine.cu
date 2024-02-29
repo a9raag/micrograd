@@ -67,7 +67,7 @@ shared_ptr<Value> Value::pow(const double n){
     Tensor<double> pow_data = Tensor<double>(this->data.shape);
     pow_data = this->data.pow(n);
     auto out = make_shared<Value>(pow_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "pow", label);
-    out->node_backward = [this, &out, n]() mutable
+    out->node_backward = [this, out, n]() mutable
     {
         this->grad = this->grad +  out->grad * n * this->data.pow(n - 1);
     };
@@ -100,7 +100,7 @@ shared_ptr<Value> Value::operator+(const shared_ptr<Value> &other)
 {
     
     auto out = make_shared<Value>(data + other->data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this(), other}, "+", label);
-    out->node_backward = [this, &out, other]() mutable
+    out->node_backward = [this, out, other]() mutable
     {  
         this->grad = this->grad +  out->grad * 1.0;
         other->grad = other->grad + out->grad * 1.0;
