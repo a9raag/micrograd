@@ -506,6 +506,28 @@ void test_layer(){
     cout<<"END: Test Layer"<<endl;
 }
 
+void test_mlp(){
+    cout<<"=========================="<<endl;
+    cout<<"START: Test MLP"<<endl;
+    cout<<"=========================="<<endl;
+    Tensor<double> a = Tensor<double>({1, 4});
+    a(0, 0) = 2.0;
+    a(0, 1) = 3.0;
+    a(0, 2) = 4.0;
+    a(0, 3) = 1.0;
+
+    MLP mlp = MLP(4, {4, 2, 1});
+    shared_ptr<Value> x = std::make_shared<Value>(a);
+    auto out = mlp(x);
+    out->set_grad_1();
+    out->backward();
+    cout<<"out: "<<out<<endl;
+    cout<<"out grad: "<<out->getGrad()<<endl;
+    cout<<"END: Test MLP"<<endl;
+
+}
+
+
 int main(int argc, char const *argv[]){
     test_tensor_1d();
     test_tensor_2d();
@@ -515,6 +537,7 @@ int main(int argc, char const *argv[]){
     test_random();
     test_value_broadcast();
     test_layer();
+    test_mlp();
     return 0;
 
 }
