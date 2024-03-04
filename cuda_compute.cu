@@ -115,6 +115,15 @@ __global__ void addKernel2d(T* a, double b, T* c, size_t x, size_t y) {
 }
 
 template <typename T> 
+__global__ void addKernel2dSingleton(T* a, T* b, T* c, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        c[i * y + j] = a[i * y + j] + b[0];
+    }
+}
+
+template <typename T> 
 __global__ void addKernel2dRowWise(T* a, T* b, T* c, size_t x, size_t y) { 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -164,6 +173,15 @@ __global__ void mulKernel2d(T* data, T* other, T* result, size_t x, size_t y) {
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     if (i < x && j < y) {
         result[i * y + j] = data[i * y + j] * other[i * y + j];
+    }
+}
+
+template <typename T>
+__global__ void mulKernel2dSingleton(T* data, T* other, T* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[i * y + j] * other[0];
     }
 }
 
@@ -225,14 +243,14 @@ __global__ void dotKernel(T* data, double other, T* result, int size) {
     }
 }
 
-
+// uniform values between -1 and 1
 template <typename T>
 __global__ void fillRandomKernel(T* data, int size, unsigned int seed) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
         curandState_t state;
         curand_init(seed, i, 0, &state);
-        data[i] = curand_uniform(&state);
+        data[i] = 2 * curand_uniform(&state) - 1;
     }
 }
 
@@ -243,6 +261,6 @@ __global__ void fillRandomKernel2d(T* data, size_t x, size_t y, unsigned int see
     if (i < x && j < y) {
         curandState_t state;
         curand_init(seed, i * y + j, 0, &state);
-        data[i * y + j] = curand_uniform(&state);
+        data[i * y + j] = curand_uniform(&state) * 2 - 1;
     }
 }

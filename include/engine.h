@@ -32,12 +32,17 @@ public:
     shared_ptr<Value> pow(double n);
 
     Tensor<double> getData();
-    void getData(Tensor<double> data);
+    void setData(Tensor<double> data);
 
     void setGrad(Tensor<double> grad);
     Tensor<double> getGrad();
 
     void set_grad_1();
+
+    shared_ptr<Value> sum();
+
+    shared_ptr<Value> mean();
+
     shared_ptr<Value> tanh();
     shared_ptr<Value> neg();
 

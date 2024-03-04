@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 
+
 using namespace std;
 string to_string(double* data, int size){
     string arr = "["; 
@@ -47,12 +48,33 @@ void Value::set_grad_1(){
     this->grad.fill(1.0);
 }
 
+shared_ptr<Value> Value::sum()
+{
+    Tensor<double> sum_data = this->data.sum();
+    auto out = make_shared<Value>(sum_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "sum", label);
+    
+    out->node_backward = [this, out]() mutable
+    {
+        this->grad = this->grad + out->grad;
+    };
+    return out;
+}
+
+shared_ptr<Value> Value::mean()
+{
+    return this->sum() * (1.0/ (double) this->data.size);
+}
 
 Tensor<double> Value::getData(){
     return this->data;
 }
 
-Tensor<double> Value::getGrad(){
+void Value::setData(Tensor<double> data)
+{
+    this->data = data;
+}
+Tensor<double> Value::getGrad()
+{
     return this->grad;
 }
 
@@ -81,9 +103,8 @@ shared_ptr<Value> Value::tanh(){
     {
         Tensor<double> ones = Tensor<double>(this->data.shape);
         ones.fill(1.0);
-        auto tanh_2 = tanh_data.pow(2);
-        auto tanh_grad = ones - tanh_2;
-        auto grad = tanh_grad * out->grad;
+        auto t2 = tanh_data.pow(2);
+        auto grad = (ones - t2)* out->grad;
         this->grad = this->grad +  grad;
     };
     return out;

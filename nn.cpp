@@ -46,59 +46,70 @@ public:
     std::vector<shared_ptr<Value>> get_params()
     {
         std::vector<shared_ptr<Value>> out;
-        // out.reserve(this->n_inputs + 1);
-        // // for(auto &weight : this->weights)
-        // // {
-        // //     out.emplace_back(weight);
-        // // }
-        // out.emplace_back(this->bias);
+        out.emplace_back(this->weights);
+        out.emplace_back(this->bias);
         return out;
     }
 };
 
-// class MLP
-// {
-// public:
-//     int nin;
-//     vector<int> nouts;
-//     vector<Layer> layers;
-//     int total_params;
-//     MLP(int nin, vector<int> nouts)
-//     {
-//         this->total_params = 0;
-//         this->nin = nin;
-//         this->nouts = nouts;
-//         layers.reserve(nouts.size() + 1);
-//         layers.emplace_back(Layer(nin, nouts[0]));
-//         for (int i = 0; i < nouts.size() - 1; i++)
-//         {
-//             total_params += (nouts[i] + 1) * nouts[i + 1];
-//             this->layers.emplace_back(Layer(nouts[i], nouts[i + 1]));
-//         }
-//     }
-//     std::vector<shared_ptr<Value>> operator()(std::vector<shared_ptr<Value>> &inputs)
-//     {
-//         std::vector<shared_ptr<Value>> out = inputs;
-//         for (Layer layer : this->layers)
-//         {
-//             out = layer(out);
-//         }
-//         return out;
-//     }
-//     std::vector<shared_ptr<Value>> get_params()
-//     {
-//         std::vector<shared_ptr<Value>> out;
-//         out.reserve(this->total_params);
-//         for (auto layer : this->layers)
-//         {
-//             for (auto value : layer.get_params())
-//             {
-//                 out.emplace_back(value);
-//             }
-//         }
-//         return out;
-//     }
-// };
+class MLP{
+    private: 
+        vector<Layer> layers;
+    public:
+        MLP(size_t n_input, vector<size_t> n_outs){
+            for (size_t i = 0; i < n_outs.size(); i++)
+            {
+                if(i == 0){
+                    layers.emplace_back(Layer(n_input, n_outs[i]));
+                }else{
+                    layers.emplace_back(Layer(n_outs[i-1], n_outs[i]));
+                }
+            }
+        }
+        shared_ptr<Value> operator()(shared_ptr<Value> &inputs){
+            shared_ptr<Value> out = inputs;
+            for (auto &layer : layers)
+            {
+                out = layer(out);
+            }
+            return out;
+        }
+
+        vector<shared_ptr<Value>> get_params(){
+        vector<shared_ptr<Value>> out;
+            for (auto &layer : layers)
+            {
+                auto params = layer.get_params();
+                out.insert(out.end(), params.begin(), params.end());
+            }
+            return out;
+        }
+
+        void update_params(double lr){
+            for (auto &layer : layers)
+            {
+                auto params = layer.get_params();
+                for (shared_ptr<Value> &param : params)
+                {
+                    auto data = param->getData() - param->getGrad() * lr;
+                    param->setData(data);
+                }
+            }
+        }
+        
+        void zero_grad(){
+            for (auto &layer : layers)
+            {
+                auto params = layer.get_params();
+                for (shared_ptr<Value> &param : params)
+                {
+                    param->getGrad().fill(0.0);
+                }
+            }
+        }
+};
+
+
 // void test_mlp_small()
 // {
 //     MLP mlp = MLP(3, {4, 4, 1});

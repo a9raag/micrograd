@@ -1,10 +1,18 @@
 #include <iostream> 
 #include <sstream>
 #include "include/compute2d.h"
+#include "include/compute1d.h"
 // #include "include/cuda_compute.h"
 // #include "cuda_compute.cu"
 #include <stdexcept>
 using namespace std;
+
+enum MATRIX_TYPE{
+    ROW_WISE,
+    COL_WISE,
+    NORMAL, 
+    SINGLETON
+};
 
 template <typename T>
 Compute2D<T>::Compute2D(){
@@ -41,7 +49,7 @@ Compute2D<T>::Compute2D(int x, int y){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     
 }
 
@@ -54,30 +62,58 @@ T* Compute2D<T>::transpose(){
         throw runtime_error("Error in allocating memory");
     }
     transposeKernel2d<T><<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
 }
 
 template <typename T>
-T* Compute2D<T>::add(BaseCompute<T>& compute){
-    // if (size != this->size){
-    //     throw invalid_argument("Size of the two arrays must be the same");
-    // }
+MATRIX_TYPE matrixType(BaseCompute<T>& lhs, BaseCompute<T>& rhs){
+    if(rhs.getSize() == 1)  return SINGLETON;
+    
+    if(rhs.getShape()[0] == 1 && rhs.getShape()[1] == lhs.getShape()[1]) 
+        return ROW_WISE;
+    
+    if(rhs.getShape()[0] == lhs.getShape()[0] && rhs.getShape()[1] == 1)
+        return COL_WISE;
+    
+    if(typeid(rhs) == typeid(Compute1D<T>)  && lhs.getShape()[1] == rhs.getSize())
+        return ROW_WISE;
+
+    if (rhs.getShape()[0] == lhs.getShape()[0] && rhs.getShape()[1] == lhs.getShape()[1])
+        return NORMAL;
+    
+    
+    ostringstream error;
+    error << "Shape of the two arrays must be the same. Shape of the first array is " << lhs.getShape()[0] << "x" << lhs.getShape()[1] << " and the shape of the second array is " << rhs.getShape()[0] << "x" << rhs.getShape()[1];
+    throw invalid_argument(error.str());
+
+}
+template <typename T>
+T* Compute2D<T>::add(BaseCompute<T>& other){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    if(compute.getShape()[0] == 1 && compute.getShape()[1] == shape[1]){
-        addKernel2dRowWise<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    MATRIX_TYPE type = matrixType(*this, other);
+    switch (type)
+    {
+    case SINGLETON:
+        addKernel2dSingleton<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case ROW_WISE:
+        addKernel2dRowWise<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case COL_WISE:
+        addKernel2dColWise<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case NORMAL:
+        addKernel2d<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    default:
+        break;
     }
-    else if(compute.getShape()[0] == shape[0] && compute.getShape()[1] == 1){
-        addKernel2dColWise<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
-    }
-    else
-        addKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
     return result;
 }
 
@@ -90,12 +126,12 @@ T*  Compute2D<T>::add(double b){
         throw runtime_error("Error in allocating memory");
     }
     addKernel2d<<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
 }
 
 template <typename T>
-T* Compute2D<T>::mul(BaseCompute<T>& compute){
+T* Compute2D<T>::mul(BaseCompute<T>& other){
     if (size != this->size){
         throw invalid_argument("Size of the two arrays must be the same");
     }
@@ -105,15 +141,27 @@ T* Compute2D<T>::mul(BaseCompute<T>& compute){
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
-    if(compute.getShape()[0] == 1 && compute.getShape()[1] == shape[1])
-        mulKernel2dRowWise<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
 
-    else if(compute.getShape()[0] == shape[0] && compute.getShape()[1] == 1)
-        mulKernel2dColWise<<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
+    MATRIX_TYPE type = matrixType(*this, other);
+    switch (type)
+    {
+    case SINGLETON:
+        mulKernel2dSingleton<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case ROW_WISE:
+        mulKernel2dRowWise<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case COL_WISE:
+        mulKernel2dColWise<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
+    case NORMAL:
+        mulKernel2d<<<this->grid, this->block>>>(this->data, other.getData(), result, shape[0], shape[1]);
+        break;
 
-    else
-        mulKernel2d<T><<<this->grid, this->block>>>(this->data, compute.getData(), result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    default:
+        break;
+    }
+
     return result;
 }
 
@@ -127,7 +175,7 @@ T* Compute2D<T>::mul(double b){
     }
 
     mulKernel2d<T><<<this->grid, this->block>>>(this->data, b, result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
 }
 
@@ -152,7 +200,7 @@ T* Compute2D<T>::dot(BaseCompute<T>& compute){
 
 
     dotKernel2d<<<this->grid, this->block>>>(this->data, compute.getData(), result, widthA, heightA, widthB);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
 }
 
@@ -165,7 +213,7 @@ T* Compute2D<T>::pow(double n){
         throw runtime_error("Error in allocating memory");
     }
     powKernel2d<T><<<this->grid, this->block>>>(this->data, result, n, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
 }
 
@@ -178,19 +226,33 @@ T* Compute2D<T>::tanh(){
         throw runtime_error("Error in allocating memory");
     }
     tanhKernel2d<T><<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     return result;
+}
+
+template <typename T>
+T* Compute2D<T>::sum(){
+    thrust::device_vector<T> d_vec(data, data + size);
+    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<T>());
+    T* out = new T[1];
+    if(cudaMallocManaged(&out, size * sizeof(T)) != cudaSuccess){
+        cout<<"2dcompute:dot: Error in allocating memory"<<endl;
+        throw runtime_error("2dcompute:dot Error in allocating memory");
+    }
+    out[0] = sum;
+    // cudaDeviceSynchronize(); 
+    return out;
 }
 
 template <typename T>
 void Compute2D<T>::fill(T value){
     fillKernel2d<T><<<this->grid, this->block>>>(this->data, value, shape[0], shape[1]);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 }
 
 template <typename T>
 void Compute2D<T>::fillRandom(unsigned int seed)
 {
     fillRandomKernel2d<T><<<this->grid, this->block>>>(this->data, shape[0], shape[1], seed);
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
 }

@@ -8,7 +8,7 @@ template <typename T>
 class Compute2D: public BaseCompute<T> {
 private: 
     int allocSize;
-    long size; 
+    size_t size; 
     dim3 block;
     dim3 grid;
     T* data;
@@ -30,8 +30,12 @@ public:
     T* mul(double b);
     T* pow(double n);
     T* tanh();
+    T* sum();
     void fill(T val);
     void fillRandom(unsigned int seed);
+    size_t getSize(){
+        return size;
+    }
     size_t* getShape() {
         return this->shape;
     }

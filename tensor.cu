@@ -146,7 +146,7 @@ vector<T> Tensor<T>::getData(){
 template <typename T>
 void Tensor<T>::print_recursive(ostream& os , size_t i, size_t j) const{
     auto data = dataCompute->getData();
-    
+    cudaDeviceSynchronize();
     if (i == ndims - 1){
         os << "[";
         for (int k = 0;  k < shape[i]; ++k) {
@@ -167,7 +167,25 @@ void Tensor<T>::print_recursive(ostream& os , size_t i, size_t j) const{
     os << "]";
 }
 
+template <typename T>
+Tensor<T> Tensor<T>::reshape(vector<size_t> newShape)
+{
+    size_t newTotalSize = 1;
+    for (size_t dim : newShape)
+    {
+        if (dim == 0)
+            throw std::invalid_argument("Dimension size cannot be zero.");
+        newTotalSize *= dim;
+    }
+    if (newTotalSize != totalSize)
+    {
+        throw std::invalid_argument("Total size of new shape must match total size of old shape.");
+    }
 
+    Tensor<T> result = Tensor<T>(newShape);
+    result.setData(dataCompute->getData());
+    return result;
+}
 template <typename T>
 ostream &operator<<(ostream &os, const Tensor<T> &t)
 {
@@ -189,10 +207,19 @@ Tensor<T> Tensor<T>::transpose()
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::neg() const {
+Tensor<T> Tensor<T>::sum()
+{
+    Tensor<T> result = Tensor<T>({1});
+    T* c = dataCompute->sum();
+    result.setData(c);
+    return result;  
+}
+template <typename T>
+Tensor<T> Tensor<T>::neg() const
+{
     Tensor<T> result = Tensor<T>(shape);
     result.setData(dataCompute->neg());
-    return result;  
+    return result;
 }
 
 template <typename T>
@@ -239,14 +266,12 @@ Tensor<T> Tensor<T>::dot(Tensor &other){
 
 template <typename T>
 Tensor<T> Tensor<T>::operator+(const Tensor& other){
-    if (other.size == 1 ){
-        return *this + (double) other.dataCompute->getData()[0];
-    }
-    // if (shape != other.shape){
-    //     throw std::invalid_argument("Tensors must have the same shape to be added.");
+    // if (other.size == 1 ){
+    //     return *this + (double) other.dataCompute->getData()[0];
     // }
-    Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->add(*other.dataCompute);
+
+    Tensor<T> result = Tensor<T>(shape);
     result.setData(c);
     return result;
 }
@@ -254,6 +279,7 @@ Tensor<T> Tensor<T>::operator+(const Tensor& other){
 template <typename T>
 Tensor<T> Tensor<T>::operator+(const double other)
 {
+    
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->add(other);
     result.setData(c);
@@ -262,9 +288,9 @@ Tensor<T> Tensor<T>::operator+(const double other)
 
 template <typename T>
 Tensor<T> Tensor<T>::operator*(const Tensor &other){ 
-    if (other.size == 1 ){
-        return *this * (double) other.dataCompute->getData()[0];
-    }
+    // if (other.size == 1 ){
+    //     return *this * (double) other.dataCompute->getData()[0];
+    // }
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->mul(*other.dataCompute);
     result.setData(c);

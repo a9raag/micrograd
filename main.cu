@@ -26,6 +26,39 @@ void test_compute(){
         cout<<c[i]<<endl;
     }
 }
+void test_cuda(){ 
+    cout<<"=========================="<<endl;
+    cout<<"START: Test Cuda"<<endl;
+    cout<<"=========================="<<endl;
+
+
+    double *data;
+    double *result;
+    size_t n = 1024;
+    if(cudaMallocManaged(&data, n*sizeof(double)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+
+    if(cudaMallocManaged(&result, n*sizeof(double)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    for(int i = 0; i < n; i++){
+        data[i] = (i+1);
+    }
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+    // sumKernel<<<blocksPerGrid, threadsPerBlock>>>(data, result, n);
+    cudaDeviceSynchronize();
+
+    cout<<result[0]<<endl;
+
+    cudaFree(data);
+    cudaFree(result);
+
+    cout<<"END: Test Cuda"<<endl;
+}
 
 void test_tensor_1d(){
     cout<<"=========================="<<endl;
@@ -255,14 +288,102 @@ void test_value2d(){
 
     val_c->set_grad_1();
     val_c->node_backward();
-    cout<<"val_a:"<<endl;
+    cout<<"val_a->grad:"<<endl;
     cout<<val_a->getGrad()<<endl;
     cout<<"--------------------------"<<endl;
+
+    // test mean 
+    Tensor<double> e = Tensor<double>({5, 1}) ;
+    e(0, 0) = 1;
+    e(1, 0) = 2;
+    e(2, 0) = 3;
+    e(3, 0) = 4;
+    e(4, 0) = 5;
+
+    Tensor<double> f = Tensor<double>({5, 1});
+    f(0, 0) = 11;
+    f(1, 0) = 22;
+    f(2, 0) = 33;
+    f(3, 0) = 44;
+    f(4, 0) = 55;
+
     
+    val_e = std::make_shared<Value>(e);
+    auto val_f = val_e->mean();
+    cout<<"val_f: val_e.mean()"<<endl;
+    cout<<val_f->getData()<<endl;
+
+    val_f  = make_shared<Value>(f);
+
+    auto val_g = val_f - val_e;
+    
+    cout<<"val_g: val_f - val_e"<<endl;
+    cout<<val_g->getData()<<endl;
+
+    val_g = val_g->mean();  
+    cout<<"val_g: val_g.mean()"<<endl;
+    cout<<val_g->getData()<<endl;
+
+
     cout<<"END: Test Value 2d: a is 3x3, b is 3x3"<<endl;
     
 
 }
+
+void test_matrix_vector_ops(){
+    cout<<"=========================="<<endl;
+    cout<<"START: Test Matrix Vector Ops"<<endl;
+    cout<<"=========================="<<endl;
+    Tensor<double> a = Tensor<double>({3, 3});
+    Tensor<double> b = Tensor<double>({3, 1});
+
+    a(0,0) = 1;
+    a(0,1) = 2;
+    a(0,2) = 3;
+    a(1,0) = 4;
+    a(1,1) = 5;
+    a(1,2) = 6;
+    a(2,0) = 7;
+    a(2,1) = 8;
+    a(2,2) = 9;
+
+    b(0,0) = 10;
+    b(1,0) = 20;
+    b(2,0) = 30;
+    
+    cout<<"a"<<endl;
+    cout<<a<<endl;
+    cout<<"b"<<endl;
+    cout<<b<<endl;
+
+    auto c = a + b; 
+    cout<<"c = a+b"<<endl;
+    cout<<c<<endl;
+
+    c = a * b;
+    cout<<"c = a * b"<<endl;
+    cout<<c<<endl;
+
+    auto d = c - a;
+    cout<<"d = c - a"<<endl;
+    cout<<d<<endl;
+
+    // d = b / a;
+    // cout<<"d = b/a"<<endl;
+    // cout<<d<<endl;
+
+    Tensor<double> vec_a = Tensor<double>({3});
+    vec_a(0) = 1;
+    vec_a(1) = 2;
+    vec_a(2) = 3;
+    cout<<"vec_a"<<endl;
+    cout<<vec_a<<endl;
+    c = a + vec_a; 
+    cout<<"c = a + vec_a"<<endl;
+    cout<<c<<endl;
+    cout<<"--------------------------"<<endl;
+    
+}   
 
 void test_backprop(){
     cout<<"=========================="<<endl;
@@ -527,17 +648,73 @@ void test_mlp(){
 
 }
 
+void test_large_mlp(){
+    cout<<"=========================="<<endl;
+    cout<<"START: Test Large MLP"<<endl;
+    cout<<"=========================="<<endl;
+    vector<vector<double>> xs = {
+        {2.0, 3.0, -1.0},
+        {3.0, -1.0, 0.5},
+        {0.5, 1.0, 1.0},
+        {1.0, 1.0, -1.0}
+    };
+    vector<vector<double>> ys = {
+        {1.0},
+        {-1.0},
+        {-1.0},
+        {1.0}
+    };
+    Tensor<double> x = Tensor<double>({4, 3});
+    Tensor<double> y = Tensor<double>({4, 1});
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 3; j++){
+            x(i, j) = xs[i][j];
+        }
+        y(i, 0) = ys[i][0];
+    }
+    MLP mlp = MLP(3, {4, 4, 1});
+    shared_ptr<Value> x_val = std::make_shared<Value>(x);
+    shared_ptr<Value> y_val = std::make_shared<Value>(y);
+    
+
+    int epoch = 20; 
+    double lr = 0.01;
+
+
+    for(int i = 0; i < epoch; i++){
+        auto out = mlp(x_val);
+        // out = out->tanh();
+        auto loss = out - y_val;
+        loss = loss->pow(2.0);
+        loss = loss->mean();
+        mlp.zero_grad();
+        loss->set_grad_1();
+        loss->backward();
+        mlp.update_params(lr);
+        if(i%10 == 0){
+            cout<<"epoch: "<<i<<"/"<<epoch<<", loss: "<<loss->getData()<<endl;
+            cout<<"out: "<<out->getData()<<endl;
+            cout<<"y: "<<y_val->getData()<<endl;
+        }
+
+    }
+    cout<<"out: "<<mlp(x_val)<<endl;
+    cout<<"y: "<<y_val<<endl;
+    cout<<"END: Test Large MLP"<<endl;
+}
 
 int main(int argc, char const *argv[]){
-    test_tensor_1d();
-    test_tensor_2d();
-    test_value2d();
+    // test_tensor_1d();
+    // test_tensor_2d();
+    // test_value2d();
     test_backprop();
-    test_gradient();
-    test_random();
-    test_value_broadcast();
-    test_layer();
-    test_mlp();
+    // test_gradient();
+    // test_random();
+    // test_matrix_vector_ops();
+    // test_value_broadcast();
+    // test_layer();
+    // test_mlp();
+    test_large_mlp();
     return 0;
 
 }
