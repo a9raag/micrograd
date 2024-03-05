@@ -36,14 +36,16 @@ class BaseCompute {
 
         virtual T* pow(double n) = 0;
         virtual T* tanh() = 0;
+        
         virtual T* sum() = 0;
+        virtual T* sum(int axis) = 0;
+
         virtual T* log() = 0;
         virtual T* exp() = 0;
 
         virtual T* sigmoid() = 0;
         virtual T* relu() = 0;
 
-        // virtual T* sum(int axis) = 0;
 
         virtual void fill(T val) = 0;
         virtual void fillRandom(unsigned int seed) = 0;

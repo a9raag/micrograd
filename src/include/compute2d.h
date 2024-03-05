@@ -47,9 +47,9 @@ public:
     
     T* sigmoid();
     T* relu();
-    T* softmax();
 
     T* sum();
+    T* sum(int axis);
     void fill(T val);
     void fillRandom(unsigned int seed);
     size_t getSize(){

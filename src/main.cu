@@ -732,11 +732,13 @@ void train_bigram(){
     cout<<"N: "<<endl;
     cout<<N<<endl;
 
-
-
-
-
-
+    auto P = N + 1.0;
+    cout<<"P.sum(1) "<<P.sum(1)<<endl;
+    P = P * P.sum(1).pow(-1);
+    
+    auto loss = P.log();
+    shared_ptr<Value> loss_val = std::make_shared<Value>(loss)->mean();
+    cout<<"loss: "<<loss_val->getData()<<endl;
 }
 int main(int argc, char const *argv[]){
     // test_tensor_1d();

@@ -351,6 +351,30 @@ __global__ void addKernel2dColWise(T* a, T* b, T* c, size_t x, size_t y) {
     }
 }
 
+template <typename T>
+__global__ void sumKernel2daxis0(T* a, T* c, size_t x, size_t y){
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    if (j < y) {
+        T sum = 0;
+        for (int i = 0; i < x; i++) {
+            sum += a[i * y + j];
+        }
+        c[j] = sum;
+    } 
+}
+
+template <typename T>
+__global__ void sumKernel2daxis1(T* a, T* c, size_t x, size_t y){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < x) {
+        T sum = 0;
+        for (int j = 0; j < y; j++) {
+            sum += a[i * y + j];
+        }
+        c[i] = sum;
+    } 
+}
+
 __global__ void addGrad(double* grad, double* outGrad, double* otherGrad, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {

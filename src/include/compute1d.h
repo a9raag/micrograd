@@ -57,7 +57,7 @@ public:
     T* relu();
 
     T* sum();
-    // T* sum(int axis);
+    T* sum(int axis);
     void fill(T val);
     void fillRandom(unsigned int seed);
 };

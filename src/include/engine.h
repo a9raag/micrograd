@@ -44,6 +44,7 @@ public:
     void set_grad_1();
 
     shared_ptr<Value> sum();
+    shared_ptr<Value> sum(int axis);
 
     shared_ptr<Value> mean();
 

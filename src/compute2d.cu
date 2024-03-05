@@ -132,6 +132,54 @@ T*  Compute2D<T>::add(double b){
 }
 
 template <typename T>
+T* Compute2D<T>::sum()
+{
+    thrust::device_vector<T> d_vec(data, data + size);
+    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<T>());
+    T* out = new T[1];
+    if(cudaMallocManaged(&out, size * sizeof(T)) != cudaSuccess){
+        cout<<"2dcompute:dot: Error in allocating memory"<<endl;
+        throw runtime_error("2dcompute:dot Error in allocating memory");
+    }
+    out[0] = sum;
+ 
+    return out;
+}
+
+template <typename T>
+T* Compute2D<T>::sum(int axis)
+{
+    if (axis == 0)
+    {
+        T *result = new T[shape[1]];
+        if (cudaMallocManaged(&result, shape[1] * sizeof(T)) != cudaSuccess)
+        {
+            cout << "Error in allocating memory" << endl;
+            cout << cudaGetErrorString(cudaGetLastError()) << endl;
+            throw runtime_error("Error in allocating memory");
+        }
+        sumKernel2daxis0<<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
+        return result;
+    }
+    else if (axis == 1)
+    {
+        T *result = new T[shape[0]];
+        if (cudaMallocManaged(&result, shape[0] * sizeof(T)) != cudaSuccess)
+        {
+            cout << "Error in allocating memory" << endl;
+            cout << cudaGetErrorString(cudaGetLastError()) << endl;
+            throw runtime_error("Error in allocating memory");
+        }
+        sumKernel2daxis0<<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
+        return result;
+    }
+    else
+    {
+        throw invalid_argument("Axis must be 0 or 1");
+    }
+}
+
+template <typename T>
 T* Compute2D<T>::mul(BaseCompute<T>& other){
     if (size != this->size){
         throw invalid_argument("Size of the two arrays must be the same");
@@ -484,20 +532,7 @@ T *Compute2D<T>::relu()
     return result;
 }
 
-template <typename T>
-T *Compute2D<T>::sum()
-{
-    thrust::device_vector<T> d_vec(data, data + size);
-    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<T>());
-    T* out = new T[1];
-    if(cudaMallocManaged(&out, size * sizeof(T)) != cudaSuccess){
-        cout<<"2dcompute:dot: Error in allocating memory"<<endl;
-        throw runtime_error("2dcompute:dot Error in allocating memory");
-    }
-    out[0] = sum;
- 
-    return out;
-}
+
 
 template <typename T>
 void Compute2D<T>::fill(T value){

@@ -41,11 +41,13 @@ public:
     void setData(T* data);
     vector<T> getData();
     void print_recursive(ostream& os , size_t i, size_t j) const;
+    
     Tensor<T> reshape(vector<size_t> newShape);
 
     Tensor transpose();
 
     Tensor sum();
+    Tensor sum(int axis);
 
     Tensor neg() const;
     Tensor exp();

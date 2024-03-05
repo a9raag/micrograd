@@ -215,6 +215,30 @@ Tensor<T> Tensor<T>::sum()
     result.setData(c);
     return result;  
 }
+
+template <typename T>
+Tensor<T> Tensor<T>::sum(int axis)
+{
+    if(ndims == 1){
+        return sum();
+    }
+    if (axis < 0 || axis >= ndims)
+    {
+        throw std::invalid_argument("Axis out of range.");
+    }
+    vector<size_t> newShape;
+    if(axis == 0)
+        newShape = {1, shape[1]};
+    else
+        newShape = {shape[0], 1};
+    
+    
+    Tensor<T> result = Tensor<T>(newShape);
+    T* c = dataCompute->sum(axis);
+    result.setData(c);
+    return result;
+}
+
 template <typename T>
 Tensor<T> Tensor<T>::neg() const
 {

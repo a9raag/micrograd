@@ -74,6 +74,16 @@ shared_ptr<Value> Value::sum()
     return out;
 }
 
+shared_ptr<Value> Value::sum(int axis){
+    Tensor<double> sum_data = this->data.sum(axis);
+    auto out = make_shared<Value>(sum_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "sum", label);
+    out->node_backward = [this, out]() mutable
+    {
+        this->grad = this->grad + out->grad;
+    };
+    return out;
+}
+
 shared_ptr<Value> Value::mean()
 {
     return this->sum() * (1.0/ (double) this->data.size);

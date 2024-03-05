@@ -364,6 +364,14 @@ T *Compute1D<T>::sum()
     return out;
 }
 template <typename T>
+T* Compute1D<T>::sum(int axis)
+{
+    if(axis != 0){
+        throw invalid_argument("Invalid axis for 1D array. Only axis=0 is allowed.");
+    }
+    return sum();
+}
+template <typename T>
 void Compute1D<T>::fill(T val)
 {
     fillKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, val, size);
