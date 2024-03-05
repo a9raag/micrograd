@@ -22,6 +22,8 @@ vector<string> split(string str, char delimiter){
 Data::Data(string filename){
     ifstream file(filename);
     string line;
+    vocab.insert('.');
+
     while(getline(file, line)){
         vector<string> tokens = split(line, ' ');
         if(tokens.size() > 0){
@@ -41,8 +43,6 @@ Data::Data(string filename){
         stoi[c] = stoi.size();
         itos[itos.size()] = c;
     }
-    stoi['.'] = stoi.size();
-    itos[itos.size()] = '.';
 };
 vector<string> Data::getWords(){
     return words;
