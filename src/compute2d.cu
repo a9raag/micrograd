@@ -179,6 +179,38 @@ T* Compute2D<T>::sum(int axis)
     }
 }
 
+
+template <typename T>
+T *Compute2D<T>::subArray(vector<vector<size_t>> dimRanges)
+{
+    if (dimRanges.size() != 2)
+    {
+        throw invalid_argument("dimRanges must be a 2D array");
+    }
+    if (dimRanges[0].size() != 2 || dimRanges[1].size() != 2)
+    {
+        throw invalid_argument("Each dimension range must be a 1D array of size 2");
+    }
+    for (auto range: dimRanges){
+        if (range[1] > shape[0]){
+            throw invalid_argument("Range must be within the shape of the array");
+        }
+    }
+    size_t result_x = dimRanges[0][1] - dimRanges[0][0];
+    size_t result_y = dimRanges[1][1] - dimRanges[1][0];
+    T *result = new T[result_x * result_y];
+    if (cudaMallocManaged(&result, result_x * result_x * sizeof(T)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    dim3 tempBlock(result_x, result_y);
+    dim3 tempGrid((result_x + tempBlock.x - 1) / tempBlock.x, (result_y + tempBlock.y - 1) / tempBlock.y);
+    subArrayKernel2d<<<tempGrid, tempBlock>>>(this->data, result, shape[0], shape[1], result_x, result_y, dimRanges[0][0], dimRanges[1][0]);
+    return result;
+}
+
 template <typename T>
 T* Compute2D<T>::mul(BaseCompute<T>& other){
     if (size != this->size){

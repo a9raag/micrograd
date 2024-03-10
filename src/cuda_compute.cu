@@ -13,6 +13,23 @@ __global__ void transposeKernel2d(T* data, T* result, size_t x, size_t y) {
 }
 
 template <typename T>
+__global__ void subArrayKernel(T* data, T* result, size_t datax, size_t start) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i + start < datax) {
+        result[i] = data[i + start];
+    }
+}
+
+template <typename T> 
+__global__ void subArrayKernel2d(T* data, T* result, size_t datax, size_t datay, size_t resultx, size_t resulty, size_t startx, size_t starty) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i + startx < datax && j + starty < datay) {
+        result[i * resulty + j] = data[(i + startx) * datay + j + starty];
+    }
+}
+
+template <typename T>
 __global__ void fillKernel(T* data, T val, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {

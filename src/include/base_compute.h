@@ -3,6 +3,8 @@
 #define BASE_COMPUTE_H
 
 #include <iostream>
+#include <vector> 
+using namespace std;
 
 template <typename T>
 class BaseCompute {
@@ -10,6 +12,7 @@ class BaseCompute {
         size_t* shape;
         
     public:
+        ~BaseCompute() = default;
         virtual T* transpose() {
             throw std::runtime_error("Not implemented");
         }
@@ -40,6 +43,8 @@ class BaseCompute {
         virtual T* sum() = 0;
         virtual T* sum(int axis) = 0;
 
+        virtual T* subArray(vector<vector<size_t>> dimRanges) = 0;
+
         virtual T* log() = 0;
         virtual T* exp() = 0;
 
@@ -56,7 +61,7 @@ class BaseCompute {
         virtual size_t* getShape() {
             return this->shape;
         }
-        
+
 };
 
 #endif // BASE_COMPUTE_H

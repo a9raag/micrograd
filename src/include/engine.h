@@ -43,6 +43,10 @@ public:
 
     void set_grad_1();
 
+    
+    shared_ptr<Value> subTensor(vector<vector<size_t>> dimRanges);
+    
+
     shared_ptr<Value> sum();
     shared_ptr<Value> sum(int axis);
 
@@ -56,6 +60,7 @@ public:
 
     shared_ptr<Value> sigmoid();
     shared_ptr<Value> relu();
+
 
 
     shared_ptr<Value> operator+(const double &other);

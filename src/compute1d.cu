@@ -372,6 +372,27 @@ T* Compute1D<T>::sum(int axis)
     return sum();
 }
 template <typename T>
+T *Compute1D<T>::subArray(vector<vector<size_t>> dimRange)
+{
+    if(dimRange.size() != 1){
+        throw invalid_argument("Invalid start index for 1D array. Only 1D start index is allowed.");
+    }
+    if (dimRange[0].size() != 2)
+    {
+        throw invalid_argument("Start and end index must be provided for 1D array.");
+    }
+    T* out;
+    size_t newSize = dimRange[0][1] - dimRange[0][0];
+    if(cudaMallocManaged(&out, newSize * sizeof(T)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    dim3 threadsPerBlock(256);
+    dim3 blocksPerGrid((newSize + threadsPerBlock.x - 1) / threadsPerBlock.x);
+    subArrayKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, out, dimRange[0][0], newSize);
+    return out;
+}
+template <typename T>
 void Compute1D<T>::fill(T val)
 {
     fillKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, val, size);

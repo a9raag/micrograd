@@ -43,6 +43,7 @@ public:
     void print_recursive(ostream& os , size_t i, size_t j) const;
     
     Tensor<T> reshape(vector<size_t> newShape);
+    Tensor<T> subTensor(vector<vector<size_t>> dimRanges);
 
     Tensor transpose();
 

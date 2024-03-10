@@ -187,6 +187,24 @@ Tensor<T> Tensor<T>::reshape(vector<size_t> newShape)
     result.setData(dataCompute->getData());
     return result;
 }
+
+template <typename T>
+Tensor<T> Tensor<T>::subTensor(vector<vector<size_t>> dimRanges)
+{
+    if (dimRanges.size() != ndims)
+    {
+        throw std::invalid_argument("Number of ranges must match number of dimensions.");
+    }
+    
+    size_t result_x = dimRanges[0][1] - dimRanges[0][0];
+    size_t result_y = dimRanges[1][1] - dimRanges[1][0];
+
+    vector<size_t> newShape = {result_x, result_y};
+    Tensor<T> result = Tensor<T>(newShape);
+    result.setData(dataCompute->subArray(dimRanges));
+    return result;
+}
+
 template <typename T>
 ostream &operator<<(ostream &os, const Tensor<T> &t)
 {

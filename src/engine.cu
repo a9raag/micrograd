@@ -62,6 +62,17 @@ void Value::set_grad_1(){
     this->grad.fill(1.0);
 }
 
+shared_ptr<Value> Value::subTensor(vector<vector<size_t>> dimRanges)
+{
+    Tensor<double> subData = this->data.subTensor(dimRanges);
+    auto out = make_shared<Value>(subData, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "slice", label);
+    out->node_backward = [this, out]() mutable
+    {
+        this->grad = this->grad + out->grad;
+    };
+    return out;
+}
+
 shared_ptr<Value> Value::sum()
 {
     Tensor<double> sum_data = this->data.sum();

@@ -28,6 +28,29 @@ void test_compute(){
     }
 }
 
+void test_sub_tensor(){
+    cout<<"=========================="<<endl;
+    cout<<"START: Test SubTensor"<<endl;
+    cout<<"=========================="<<endl;
+    Tensor<double> a = Tensor<double>({3, 3});
+    a(0,0) = 1;
+    a(0,1) = 2;
+    a(0,2) = 3;
+    a(1,0) = 4;
+    a(1,1) = 5;
+    a(1,2) = 6;
+    a(2,0) = 7;
+    a(2,1) = 8;
+    a(2,2) = 9;
+    cout<<"a"<<endl;
+    cout<<a<<endl;
+    auto b = a.subTensor({{0, 1}, {0, 3}});
+    cout<<"b"<<endl;
+    cout<<b<<endl;
+    cout<<"END: Test SubTensor"<<endl;
+
+}
+
 void test_tensor_1d(){
     cout<<"=========================="<<endl;
     cout<<"START: Testing Tensor 1d"<<endl;
@@ -752,7 +775,7 @@ int main(int argc, char const *argv[]){
     // test_layer();
     // test_mlp();
     // test_large_mlp();
-    train_bigram();
+    test_sub_tensor();    
     return 0;
 
 }
