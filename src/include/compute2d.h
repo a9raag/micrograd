@@ -18,29 +18,30 @@ public:
     Compute2D();
     ~Compute2D();
     T* getData();
+    void allocateMemory(T *data, size_t M, size_t N);
     void setData(T* data);
     Compute2D(int x, int y);
 
     T* transpose();
 
     T* add(BaseCompute<T>& compute);
-    T* add(double b);
+    T* add(float b);
     T* dot(BaseCompute<T>& compute);
     T* mul(BaseCompute<T>& compute);
-    T* mul(double b);
+    T* mul(float b);
     
     T* greater(BaseCompute<T>& compute);
-    T* greater(double b);
+    T* greater(float b);
     T* less(BaseCompute<T>& compute);
-    T* less(double b);
+    T* less(float b);
     T* equal(BaseCompute<T>& compute);
-    T* equal(double b);
+    T* equal(float b);
     T* greaterEqual(BaseCompute<T>& compute);
-    T* greaterEqual(double b);
+    T* greaterEqual(float b);
     T* lessEqual(BaseCompute<T>& compute);
-    T* lessEqual(double b);
+    T* lessEqual(float b);
 
-    T* pow(double n);
+    T* pow(float n);
     T* tanh();
     T* log();
     T* exp();

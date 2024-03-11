@@ -282,7 +282,7 @@ Tensor<T> Tensor<T>::log()
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::pow(double n){
+Tensor<T> Tensor<T>::pow(float n){
     Tensor<T> result = Tensor<T>(shape);
     result.setData(dataCompute->pow(n));
     return result;
@@ -342,7 +342,7 @@ Tensor<T> Tensor<T>::dot(Tensor &other){
 template <typename T>
 Tensor<T> Tensor<T>::operator+(const Tensor& other){
     // if (other.size == 1 ){
-    //     return *this + (double) other.dataCompute->getData()[0];
+    //     return *this + (float) other.dataCompute->getData()[0];
     // }
     T* c = dataCompute->add(*other.dataCompute);
 
@@ -352,7 +352,7 @@ Tensor<T> Tensor<T>::operator+(const Tensor& other){
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator+(const double other)
+Tensor<T> Tensor<T>::operator+(const float other)
 {
     
     Tensor<T> result = Tensor<T>(shape);
@@ -364,7 +364,7 @@ Tensor<T> Tensor<T>::operator+(const double other)
 template <typename T>
 Tensor<T> Tensor<T>::operator*(const Tensor &other){ 
     // if (other.size == 1 ){
-    //     return *this * (double) other.dataCompute->getData()[0];
+    //     return *this * (float) other.dataCompute->getData()[0];
     // }
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->mul(*other.dataCompute);
@@ -373,7 +373,7 @@ Tensor<T> Tensor<T>::operator*(const Tensor &other){
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator*(const double &other){ 
+Tensor<T> Tensor<T>::operator*(const float &other){ 
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->mul(other);
     result.setData(c);
@@ -407,7 +407,7 @@ Tensor<T> Tensor<T>::operator>(const Tensor &other)
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator>(const double &other)
+Tensor<T> Tensor<T>::operator>(const float &other)
 {
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->greater(other);
@@ -425,7 +425,7 @@ Tensor<T> Tensor<T>::operator>=(const Tensor &other)
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator>=(const double &other)
+Tensor<T> Tensor<T>::operator>=(const float &other)
 {
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->greaterEqual(other);
@@ -443,7 +443,7 @@ Tensor<T> Tensor<T>::operator<=(const Tensor &other)
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator<=(const double &other)
+Tensor<T> Tensor<T>::operator<=(const float &other)
 {
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->lessEqual(other);
@@ -462,7 +462,7 @@ Tensor<T> Tensor<T>::operator<(const Tensor &other)
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator<(const double &other)
+Tensor<T> Tensor<T>::operator<(const float &other)
 {
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->less(other);
@@ -480,7 +480,7 @@ Tensor<T> Tensor<T>::operator==(const Tensor &other)
 }
 
 template <typename T>
-Tensor<T> Tensor<T>::operator==(const double &other)
+Tensor<T> Tensor<T>::operator==(const float &other)
 {
     Tensor<T> result = Tensor<T>(shape);
     T* c = dataCompute->equal(other);
@@ -500,7 +500,7 @@ Tensor<T> operator*(const Tensor<T>& t1, const Tensor<T>& t2) {
 }
 
 template <typename T>
-Tensor<T> operator*(const double &t1, const Tensor<T> &t2)
+Tensor<T> operator*(const float &t1, const Tensor<T> &t2)
 {
     return t2 * t1;
 }
@@ -511,13 +511,13 @@ Tensor<T> operator/(const Tensor<T>& t1, const Tensor<T>& t2) {
 }
 
 template <typename T>
-Tensor<T> operator/(const Tensor<T> &t1, const double &t2)
+Tensor<T> operator/(const Tensor<T> &t1, const float &t2)
 {
     return t1 * (1 / t2);
 }
 
 template <typename T>
-Tensor<T> operator/(const double &t1, const Tensor<T> &t2)
+Tensor<T> operator/(const float &t1, const Tensor<T> &t2)
 {
     Tensor<T> result = Tensor<T>(t2.shape);
     T* c = t2.dataCompute->mul(1 / t1);
@@ -526,13 +526,13 @@ Tensor<T> operator/(const double &t1, const Tensor<T> &t2)
 }
 
 template <typename T>
-Tensor<T> operator*(const Tensor<T> &t1, const double& t2)
+Tensor<T> operator*(const Tensor<T> &t1, const float& t2)
 {
     return t1 * t2;
 }
 
 template <typename T>
-Tensor<T> operator+(const Tensor<T> &t1, const double& t2)
+Tensor<T> operator+(const Tensor<T> &t1, const float& t2)
 {
     return t1 + t2;
 }

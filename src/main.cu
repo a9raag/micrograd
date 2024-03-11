@@ -7,6 +7,7 @@
 #include <cuda_runtime.h>
 #include "nn.cpp"
 #include "data.cpp"
+#include "helper.cpp"
 using namespace std;
 
 void test_compute(){
@@ -32,7 +33,7 @@ void test_sub_tensor(){
     cout<<"=========================="<<endl;
     cout<<"START: Test SubTensor"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({3, 3});
+    Tensor<float> a = Tensor<float>({3, 3});
     a(0,0) = 1;
     a(0,1) = 2;
     a(0,2) = 3;
@@ -56,7 +57,7 @@ void test_tensor_1d(){
     cout<<"START: Testing Tensor 1d"<<endl;
     cout<<"=========================="<<endl;
 
-    Tensor<double> a({3}), b({3});
+    Tensor<float> a({3}), b({3});
     a(0) = 1;
     a(1) = 2; 
     a(2) = 3;
@@ -94,7 +95,7 @@ void test_tensor_1d(){
     cout<<"a@b"<<endl;
     cout<<d<<endl;
 
-    Tensor<double> e = Tensor<double>({1});
+    Tensor<float> e = Tensor<float>({1});
     e(0) = 2.0;
     d = d + e;
     cout<<"d+e"<<endl;
@@ -106,8 +107,8 @@ void test_tensor(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Tensor: a is 3x3, b is 3x3"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a({3, 3});
-    Tensor<double> b({3, 3});
+    Tensor<float> a({3, 3});
+    Tensor<float> b({3, 3});
     a(0,0) = 1;
     a(0,1) = 2;
     a(0,2) = 3;
@@ -164,8 +165,8 @@ void test_tensor_2d(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Tensor 2d: a is 2x3, b is 3x2"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a({2, 3});
-    Tensor<double> b({3, 2});
+    Tensor<float> a({2, 3});
+    Tensor<float> b({3, 2});
     a(0, 0) = 1;
     a(0, 1) = 2;
     a(0, 2) = 3;
@@ -205,7 +206,7 @@ void test_value2d(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Value 2d: a is 3x3, b is 3x3"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a({3, 3}), b({3, 3});
+    Tensor<float> a({3, 3}), b({3, 3});
 
     a(0,0) = 1;
     a(0,1) = 2;
@@ -284,14 +285,14 @@ void test_value2d(){
     cout<<"--------------------------"<<endl;
 
     // test mean 
-    Tensor<double> e = Tensor<double>({5, 1}) ;
+    Tensor<float> e = Tensor<float>({5, 1}) ;
     e(0, 0) = 1;
     e(1, 0) = 2;
     e(2, 0) = 3;
     e(3, 0) = 4;
     e(4, 0) = 5;
 
-    Tensor<double> f = Tensor<double>({5, 1});
+    Tensor<float> f = Tensor<float>({5, 1});
     f(0, 0) = 11;
     f(1, 0) = 22;
     f(2, 0) = 33;
@@ -325,8 +326,8 @@ void test_matrix_vector_ops(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Matrix Vector Ops"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({3, 3});
-    Tensor<double> b = Tensor<double>({3, 1});
+    Tensor<float> a = Tensor<float>({3, 3});
+    Tensor<float> b = Tensor<float>({3, 1});
 
     a(0,0) = 1;
     a(0,1) = 2;
@@ -363,7 +364,7 @@ void test_matrix_vector_ops(){
     // cout<<"d = b/a"<<endl;
     // cout<<d<<endl;
 
-    Tensor<double> vec_a = Tensor<double>({3});
+    Tensor<float> vec_a = Tensor<float>({3});
     vec_a(0) = 1;
     vec_a(1) = 2;
     vec_a(2) = 3;
@@ -381,24 +382,24 @@ void test_backprop(){
     cout<<"START: Test Backprop"<<endl;
     cout<<"=========================="<<endl;
     cout << "Starting forward pass" << endl;
-    Tensor<double> xt1 = Tensor<double>({1});
+    Tensor<float> xt1 = Tensor<float>({1});
     xt1(0) = 2.0;
     shared_ptr<Value> x1 = std::make_shared<Value>(xt1);
-    Tensor<double> xt2 = Tensor<double>({1});
+    Tensor<float> xt2 = Tensor<float>({1});
     xt2(0) = 0.0;
     shared_ptr<Value> x2 = std::make_shared<Value>(xt2);
     x1->label = "x1";
     x2->label = "x2";
-    Tensor<double> wt1 = Tensor<double>({1});
+    Tensor<float> wt1 = Tensor<float>({1});
     wt1(0) = -3.0;
     shared_ptr<Value> w1 = std::make_shared<Value>(wt1);
-    Tensor<double> wt2 = Tensor<double>({1});
+    Tensor<float> wt2 = Tensor<float>({1});
     wt2(0) = 0.0;
     shared_ptr<Value> w2 = std::make_shared<Value>(wt2);
     w1->label = "w1";
     w2->label = "w2";
 
-    Tensor<double> bt = Tensor<double>({1});
+    Tensor<float> bt = Tensor<float>({1});
     bt(0) = 6.8813735870195432;
     shared_ptr<Value> b = std::make_shared<Value>(bt);
     b->label = "b";
@@ -436,17 +437,17 @@ void test_random(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Random"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({3, 3}).randomize();
+    Tensor<float> a = Tensor<float>({3, 3}).randomize();
     
     cout<<"a"<<endl;
     cout<<a.randomize()<<endl;
 
-    Tensor<double> b ({10});
+    Tensor<float> b ({10});
     b.randomize();
     cout<<"b"<<endl;
     cout<<b<<endl;
 
-    Tensor<double> c ({1, 10});
+    Tensor<float> c ({1, 10});
     c.randomize();
     cout<<"c"<<endl;
     cout<<c<<endl;
@@ -457,8 +458,8 @@ void test_value_broadcast(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Value Broadcast"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({3, 3});
-    Tensor<double> b = Tensor<double>({3, 3});
+    Tensor<float> a = Tensor<float>({3, 3});
+    Tensor<float> b = Tensor<float>({3, 3});
     a(0,0) = 1;
     a(0,1) = 2;
     a(0,2) = 3;
@@ -496,7 +497,7 @@ void test_value_broadcast(){
     cout<<"val_c: val_a + 1.0"<<endl;
     cout<<val_c->getData()<<endl;
 
-    Tensor<double> row = Tensor<double>({1, 3});
+    Tensor<float> row = Tensor<float>({1, 3});
     row(0,0) = 1;
     row(0,1) = 2;
     row(0,2) = 3;
@@ -506,7 +507,7 @@ void test_value_broadcast(){
     cout<<"val_d: val_a + val_row"<<endl;
     cout<<val_d->getData()<<endl;
 
-    Tensor<double> column = Tensor<double>({3, 1});
+    Tensor<float> column = Tensor<float>({3, 1});
     column(0,0) = 100;
     column(1,0) = 200;
     column(2,0) = 300;
@@ -528,8 +529,8 @@ void test_gradient(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Gradient"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({3, 3});
-    Tensor<double> b = Tensor<double>({3, 3});
+    Tensor<float> a = Tensor<float>({3, 3});
+    Tensor<float> b = Tensor<float>({3, 3});
     a(0,0) = 1;
     a(0,1) = 2;
     a(0,2) = 3;
@@ -602,7 +603,7 @@ void test_layer(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Layer"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({1, 4});
+    Tensor<float> a = Tensor<float>({1, 4});
     a(0, 0) = 2.0;
     a(0, 1) = 3.0;
     a(0, 2) = 4.0;
@@ -622,7 +623,7 @@ void test_mlp(){
     cout<<"=========================="<<endl;
     cout<<"START: Test MLP"<<endl;
     cout<<"=========================="<<endl;
-    Tensor<double> a = Tensor<double>({1, 4});
+    Tensor<float> a = Tensor<float>({1, 4});
     a(0, 0) = 2.0;
     a(0, 1) = 3.0;
     a(0, 2) = 4.0;
@@ -643,20 +644,20 @@ void test_large_mlp(){
     cout<<"=========================="<<endl;
     cout<<"START: Test Large MLP"<<endl;
     cout<<"=========================="<<endl;
-    vector<vector<double>> xs = {
+    vector<vector<float>> xs = {
         {2.0, 3.0, -1.0},
         {3.0, -1.0, 0.5},
         {0.5, 1.0, 1.0},
         {1.0, 1.0, -1.0}
     };
-    vector<vector<double>> ys = {
+    vector<vector<float>> ys = {
         {1.0},
         {-1.0},
         {-1.0},
         {1.0}
     };
-    Tensor<double> x = Tensor<double>({4, 3});
-    Tensor<double> y = Tensor<double>({4, 1});
+    Tensor<float> x = Tensor<float>({4, 3});
+    Tensor<float> y = Tensor<float>({4, 1});
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 3; j++){
             x(i, j) = xs[i][j];
@@ -669,7 +670,7 @@ void test_large_mlp(){
     
 
     int epoch = 20; 
-    double lr = 0.01;
+    float lr = 0.01;
 
 
     for(int i = 0; i < epoch; i++){
@@ -729,7 +730,7 @@ void test_data(){
 
 }
 
-void train_bigram(){
+void train_bigram_probability(){
     // intialise data
     Data data("../names.txt");
     vector<string> words = data.getWords();
@@ -739,7 +740,7 @@ void train_bigram(){
     map<int, char> itos = data.getItos();
 
     // intialise tensors 
-    Tensor<double> N = Tensor<double>({data.getVocabSize(), data.getVocabSize()}).fill(0.0);
+    Tensor<float> N = Tensor<float>({data.getVocabSize(), data.getVocabSize()}).fill(0.0);
     cudaDeviceSynchronize();
     cout<<"START: Fill N with bigram counts"<<endl;
     for(auto word : words){
@@ -763,6 +764,75 @@ void train_bigram(){
     shared_ptr<Value> loss_val = std::make_shared<Value>(loss)->mean();
     cout<<"loss: "<<loss_val->getData()<<endl;
 }
+
+void train_bigram_nn(){
+    Data data("../names.txt");
+    vector<string> words = data.getWords();
+    cout <<"Words size: " << words.size() << endl;
+    cout << "Vocab Size: "<< data.getVocabSize() << endl;
+    map<char, int> stoi = data.getStoi();
+    map<int, char> itos = data.getItos();
+
+
+    Tensor<float> N = Tensor<float>({data.getVocabSize(), data.getVocabSize()}).fill(0.0);
+    vector<float> xsv; 
+    vector<float> ysv;
+    cout<<"START: Create input and output data"<<endl;
+    
+    for(auto word : words){
+        word = "." + word + ".";
+        for(int i = 0; i < word.size()-1; i++){
+            int c1 = stoi[word[i]]; 
+            int c2 = stoi[word[i+1]];
+            xsv.push_back(c1);
+            ysv.push_back(c2);
+        }
+    }
+    Tensor<float> xs = Tensor<float>({xsv.size()});
+    xs.setData(xsv.data());
+    Tensor<float> ys = Tensor<float>({ysv.size()});
+    ys.setData(ysv.data());
+
+
+    auto xenc = oneHot(xs, data.getVocabSize());
+    auto w = Tensor<float>({data.getVocabSize(), data.getVocabSize()}).randomize();
+
+    shared_ptr<Value> x = std::make_shared<Value>(xenc);
+    shared_ptr<Value> y = std::make_shared<Value>(ys);
+    shared_ptr<Value> w_val = std::make_shared<Value>(w);
+
+
+    int epoc = 100;
+    float lr = 0.01;
+
+    for(int i = 0; i < epoc; i++){
+        auto logits = x->dot(w_val);
+        cout<<"logits shape: " << logits->getData().shape[0] << " " << logits->getData().shape[1] << endl;
+        auto counts = logits->exp();
+        auto temp_count = counts->sum(1)->pow(-1);
+        cout<<"temp count shape :"<<temp_count->getData().shape[0] << " " << temp_count->getData().shape[1] << endl;
+        cout<<temp_count->subTensor({{1, 2}, {0, 10}})<<endl;
+        auto probs = counts / temp_count; 
+
+        Tensor<float> targetProbs = Tensor<float>({ysv.size()});
+        for(int j = 0; j < ysv.size(); j++){
+            targetProbs(j) = probs->getData()(j, (int)ysv[j]);
+        }   
+        auto loss = make_shared<Value>(targetProbs)->log()->mean();
+
+        w_val->zero_grad();
+
+        loss->set_grad_1();
+        loss->backward();
+
+        w_val->setData(w_val->getData() - w_val->getGrad() * lr);
+        if(i%10 == 0){
+            cout<<"epoch: "<<i<<"/"<<epoc<<", loss: "<<loss->getData()<<endl;
+        }
+    }
+    
+
+}
 int main(int argc, char const *argv[]){
     // test_tensor_1d();
     // test_tensor_2d();
@@ -775,7 +845,8 @@ int main(int argc, char const *argv[]){
     // test_layer();
     // test_mlp();
     // test_large_mlp();
-    test_sub_tensor();    
+    // test_sub_tensor();  
+    train_bigram_nn();   
     return 0;
 
 }

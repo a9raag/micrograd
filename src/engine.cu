@@ -9,7 +9,7 @@
 
 
 using namespace std;
-string to_string(double* data, int size){
+string to_string(float* data, int size){
     string arr = "["; 
     for(int i = 0; i < size; i++){
         arr += to_string(data[i]);
@@ -21,29 +21,29 @@ string to_string(double* data, int size){
     return arr;
 }
 // default constructor
-Value::Value() : data(Tensor<double>()), node_backward([](){}), prev({}), op(""), label("") {
+Value::Value() : data(Tensor<float>()), node_backward([](){}), prev({}), op(""), label("") {
     this->node_backward = []() {};
-    this->grad = Tensor<double>();
+    this->grad = Tensor<float>();
 }
 
 template<typename T>
 Value::Value(initializer_list<T> input)
 {
     vector<T> input_vector = input;
-    Tensor<double>  data = Tensor<double>({input_vector.size()});
+    Tensor<float>  data = Tensor<float>({input_vector.size()});
     cout<<data(0)<<endl;
     for(int i = 0; i < input.size(); i++){
         data(i) = input_vector[i];
     }   
     this->node_backward = []() {};
-    this->grad = Tensor<double>(data.shape);
+    this->grad = Tensor<float>(data.shape);
 
 }
 
-Value::Value(Tensor<double> data, std::initializer_list<shared_ptr<Value>> children = {}, string op = "", string label = "")
+Value::Value(Tensor<float> data, std::initializer_list<shared_ptr<Value>> children = {}, string op = "", string label = "")
     : data(data), node_backward([](){}), prev(children), op(op), label(label) {
         this->node_backward = []() {}; 
-        this->grad = Tensor<double>(data.shape);    
+        this->grad = Tensor<float>(data.shape);    
 };
 
 Value::~Value() {
@@ -62,9 +62,13 @@ void Value::set_grad_1(){
     this->grad.fill(1.0);
 }
 
+void Value::zero_grad(){
+    this->grad.fill(0.0);
+}
+
 shared_ptr<Value> Value::subTensor(vector<vector<size_t>> dimRanges)
 {
-    Tensor<double> subData = this->data.subTensor(dimRanges);
+    Tensor<float> subData = this->data.subTensor(dimRanges);
     auto out = make_shared<Value>(subData, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "slice", label);
     out->node_backward = [this, out]() mutable
     {
@@ -75,7 +79,7 @@ shared_ptr<Value> Value::subTensor(vector<vector<size_t>> dimRanges)
 
 shared_ptr<Value> Value::sum()
 {
-    Tensor<double> sum_data = this->data.sum();
+    Tensor<float> sum_data = this->data.sum();
     auto out = make_shared<Value>(sum_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "sum", label);
     
     out->node_backward = [this, out]() mutable
@@ -86,7 +90,7 @@ shared_ptr<Value> Value::sum()
 }
 
 shared_ptr<Value> Value::sum(int axis){
-    Tensor<double> sum_data = this->data.sum(axis);
+    Tensor<float> sum_data = this->data.sum(axis);
     auto out = make_shared<Value>(sum_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "sum", label);
     out->node_backward = [this, out]() mutable
     {
@@ -97,24 +101,24 @@ shared_ptr<Value> Value::sum(int axis){
 
 shared_ptr<Value> Value::mean()
 {
-    return this->sum() * (1.0/ (double) this->data.size);
+    return this->sum() * (1.0/ (float) this->data.size);
 }
 
-Tensor<double> Value::getData(){
+Tensor<float> Value::getData(){
     return this->data;
 }
 
-void Value::setData(Tensor<double> data)
+void Value::setData(Tensor<float> data)
 {
     this->data = data;
 }
-Tensor<double> Value::getGrad()
+Tensor<float> Value::getGrad()
 {
     return this->grad;
 }
 
 shared_ptr<Value> Value::neg(){
-    Tensor<double> neg_data = Tensor<double>(this->data.shape);
+    Tensor<float> neg_data = Tensor<float>(this->data.shape);
     neg_data.fill(-1.0);
     auto out = make_shared<Value>(neg_data, std::initializer_list<std::shared_ptr<Value>>{}, "neg", label);
     return shared_from_this() * out;
@@ -122,7 +126,7 @@ shared_ptr<Value> Value::neg(){
 
 shared_ptr<Value> Value::exp()
 {
-    Tensor<double> exp_data = this->data.exp();
+    Tensor<float> exp_data = this->data.exp();
     auto out = make_shared<Value>(exp_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "exp", label);
     out->node_backward = [this, out, exp_data]() mutable
     {
@@ -133,7 +137,7 @@ shared_ptr<Value> Value::exp()
 
 shared_ptr<Value> Value::log()
 {
-    Tensor<double> log_data = this->data.log();
+    Tensor<float> log_data = this->data.log();
     auto out = make_shared<Value>(log_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "log", label);
     out->node_backward = [this, out]() mutable
     {
@@ -144,11 +148,11 @@ shared_ptr<Value> Value::log()
 
 shared_ptr<Value> Value::sigmoid()
 {
-    Tensor<double> sigmoid_data = this->data.sigmoid();
+    Tensor<float> sigmoid_data = this->data.sigmoid();
     auto out = make_shared<Value>(sigmoid_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "sigmoid", label);
     out->node_backward = [this, out, sigmoid_data]() mutable
     {
-        auto ones = Tensor<double>(this->data.shape);
+        auto ones = Tensor<float>(this->data.shape);
         ones.fill(1.0);
         auto grad = sigmoid_data * (ones - sigmoid_data) * out->grad;
         this->grad = this->grad + grad;
@@ -158,7 +162,7 @@ shared_ptr<Value> Value::sigmoid()
 
 shared_ptr<Value> Value::relu()
 {
-    Tensor<double> relu_data = this->data.relu();
+    Tensor<float> relu_data = this->data.relu();
     auto out = make_shared<Value>(relu_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "relu", label);
     out->node_backward = [this, out]() mutable
     {
@@ -168,9 +172,9 @@ shared_ptr<Value> Value::relu()
     return out;
 }
 
-shared_ptr<Value> Value::pow(const double n)
+shared_ptr<Value> Value::pow(const float n)
 {
-    Tensor<double> pow_data = Tensor<double>(this->data.shape);
+    Tensor<float> pow_data = Tensor<float>(this->data.shape);
     pow_data = this->data.pow(n);
     auto out = make_shared<Value>(pow_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "pow", label);
     out->node_backward = [this, out, n]() mutable
@@ -181,11 +185,11 @@ shared_ptr<Value> Value::pow(const double n)
 }
 
 shared_ptr<Value> Value::tanh(){
-    Tensor<double> tanh_data = this->data.tanh();
+    Tensor<float> tanh_data = this->data.tanh();
     auto out = make_shared<Value>(tanh_data, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "tanh", label);
     out->node_backward = [this, out, tanh_data]() mutable
     {
-        Tensor<double> ones = Tensor<double>(this->data.shape);
+        Tensor<float> ones = Tensor<float>(this->data.shape);
         ones.fill(1.0);
         auto t2 = tanh_data.pow(2);
         auto grad = (ones - t2)* out->grad;
@@ -194,9 +198,9 @@ shared_ptr<Value> Value::tanh(){
     return out;
 }
 
-shared_ptr<Value> Value::operator+(const double &other)
+shared_ptr<Value> Value::operator+(const float &other)
 {
-    Tensor<double> other_tensor = Tensor<double>(this->data.shape).fill(other);
+    Tensor<float> other_tensor = Tensor<float>(this->data.shape).fill(other);
     auto other_val = make_shared<Value>(other_tensor, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
     return shared_from_this() + other_val;
 }
@@ -213,7 +217,7 @@ shared_ptr<Value> Value::operator+(const shared_ptr<Value> &other)
     return out;
     
 }
-std::shared_ptr<Value> operator+(const std::shared_ptr<Value> &lhs, const double &rhs)
+std::shared_ptr<Value> operator+(const std::shared_ptr<Value> &lhs, const float &rhs)
 {
     return (*lhs) + rhs;
 }
@@ -222,9 +226,9 @@ std::shared_ptr<Value> operator+(const std::shared_ptr<Value> &lhs, const std::s
     return (*lhs) + rhs;
 }
 
-shared_ptr<Value> Value::operator-(const double &other)
+shared_ptr<Value> Value::operator-(const float &other)
 {
-    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    Tensor<float> other_data = Tensor<float>(this->data.shape);
     other_data.fill(other);
     auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
     return shared_from_this() - other_val;
@@ -239,13 +243,13 @@ std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const std::s
     return (*lhs) - rhs;
 }
 
-std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const double& rhs) {
+std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const float& rhs) {
     return (*lhs) - rhs;
 }
 
-shared_ptr<Value> Value::operator*(const double &other)
+shared_ptr<Value> Value::operator*(const float &other)
 {
-    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    Tensor<float> other_data = Tensor<float>(this->data.shape);
     other_data.fill(other);
     auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
     return shared_from_this() * other_val;
@@ -266,7 +270,7 @@ std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const std::s
 }
 
 
-std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const double& rhs) {
+std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const float& rhs) {
     return (*lhs) * rhs;
 }
 
@@ -285,9 +289,9 @@ shared_ptr<Value> Value::dot(const shared_ptr<Value> &other)
     return out;
 }
 
-shared_ptr<Value> Value::operator/(const double &other)
+shared_ptr<Value> Value::operator/(const float &other)
 {
-    Tensor<double> other_data = Tensor<double>(this->data.shape);
+    Tensor<float> other_data = Tensor<float>(this->data.shape);
     other_data.fill(other);
     auto other_val = make_shared<Value>(other_data, std::initializer_list<std::shared_ptr<Value>>{}, "const", label);
     return shared_from_this() / other_val;
@@ -302,7 +306,7 @@ std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const std::s
     return (*lhs) / rhs;
 }
 
-std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const double& rhs) {
+std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const float& rhs) {
     return (*lhs) / rhs;
 }
 

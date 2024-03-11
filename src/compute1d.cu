@@ -28,9 +28,29 @@ T* Compute1D<T>::getData() {
 
 template <typename T>
 void Compute1D<T>::setData(T* data) {
-    this->data = data;
+    cudaMemcpy(this->data, data, this->size * sizeof(T), cudaMemcpyHostToDevice);
 }
 
+template <typename T> 
+void Compute1D<T>::allocateMemory(T* data, size_t size) {
+    cudaDeviceProp prop;
+    int deviceId;
+    cudaGetDevice(&deviceId); // Get current device ID
+    cudaGetDeviceProperties(&prop, deviceId); // Get device properties
+    this->threadsPerBlock = prop.maxThreadsPerBlock;
+    // int blockSize = (maxThreadsPerBlock < 256) ? maxThreadsPerBlock : 256; // Example choice, considering hardware limit
+
+    this->blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
+    this->size = size;
+    if(cudaMallocManaged(&this->data, size * sizeof(T)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    if (cudaMemcpy(this->data, data, size * sizeof(T), cudaMemcpyHostToDevice) != cudaSuccess) {
+        cout<<"Error in copying data to GPU"<<endl;
+        cudaFree(this->data);
+    }
+}
 
 template <typename T>
 Compute1D<T>::Compute1D(size_t size)
@@ -38,14 +58,19 @@ Compute1D<T>::Compute1D(size_t size)
     this->data = new T[size];
     this->shape[0] = size;
     this->size = size;
-    this->threadsPerBlock = 256;
+    this->threadsPerBlock = 32;
     this->blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
 
     // Initialize data on GPU
     int allocSize = this->size * sizeof(T);
     if(cudaMallocManaged(&this->data, allocSize) != cudaSuccess){
-        cout<<"Compute1D: Error in allocating memory"<<endl;
-        cout<<cudaGetErrorString(cudaGetLastError())<<endl;
+        cerr<<"Compute1D: Error in allocating memory"<<endl;
+        cerr<<"Tried to allocate: "<<allocSize<<" bytes"<<endl;
+        cerr<<"Size: "<<size<<endl;
+        cerr<<"Threads per block: "<<threadsPerBlock<<endl;
+        cerr<<"Blocks per grid: "<<blocksPerGrid<<endl;
+        cerr<<cudaGetErrorString(cudaGetLastError())<<endl;
+        cerr<<cudaGetErrorString(cudaPeekAtLastError())<<endl;
         throw invalid_argument("Error in allocating memory");
     }
 
@@ -73,7 +98,7 @@ T* Compute1D<T>::add(BaseCompute<T>& compute) {
 }
 
 template <typename T>
-T* Compute1D<T>::add(double b) {
+T* Compute1D<T>::add(float b) {
     T* c;  
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -94,7 +119,7 @@ T* Compute1D<T>::dot(BaseCompute<T>& compute){
     }
     mulKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, compute.getData(), c, size);
     thrust::device_vector<T> d_vec(c, c + size);
-    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<double>());
+    T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<float>());
     
     T* out = new T[1];
     if(cudaMallocManaged(&out, this->size * sizeof(T)) != cudaSuccess){
@@ -116,7 +141,7 @@ T* Compute1D<T>::dot(BaseCompute<T>& compute){
 
 //TODO: refactor remove unused parameters
 template <typename T>
-T* Compute1D<T>::dot(double b){ 
+T* Compute1D<T>::dot(float b){ 
     T *c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -142,7 +167,7 @@ T* Compute1D<T>::mul(BaseCompute<T>& compute){
 }
 
 template <typename T>
-T* Compute1D<T>::mul(double b){ 
+T* Compute1D<T>::mul(float b){ 
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -166,7 +191,7 @@ T *Compute1D<T>::greater(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute1D<T>::greater(double b)
+T *Compute1D<T>::greater(float b)
 {
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
@@ -190,7 +215,7 @@ T *Compute1D<T>::greaterEqual(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute1D<T>::greaterEqual(double b)
+T *Compute1D<T>::greaterEqual(float b)
 {
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
@@ -214,7 +239,7 @@ T *Compute1D<T>::less(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute1D<T>::less(double b)
+T *Compute1D<T>::less(float b)
 {
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
@@ -238,7 +263,7 @@ T *Compute1D<T>::lessEqual(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute1D<T>::lessEqual(double b)
+T *Compute1D<T>::lessEqual(float b)
 {
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
@@ -262,7 +287,7 @@ T *Compute1D<T>::equal(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute1D<T>::equal(double b)
+T *Compute1D<T>::equal(float b)
 {
     T* c; 
     if(cudaMallocManaged(&c, this->size * sizeof(T)) != cudaSuccess){
@@ -274,7 +299,7 @@ T *Compute1D<T>::equal(double b)
 }
 
 template <typename T>
-T* Compute1D<T>::pow(double n){ 
+T* Compute1D<T>::pow(float n){ 
     T* out; 
     if(cudaMallocManaged(&out, this->size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -363,6 +388,7 @@ T *Compute1D<T>::sum()
     
     return out;
 }
+
 template <typename T>
 T* Compute1D<T>::sum(int axis)
 {

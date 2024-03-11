@@ -12,8 +12,8 @@ using namespace std;
 class Value: public std::enable_shared_from_this<Value>
 {
 private:
-    Tensor<double> data;
-    Tensor<double> grad;
+    Tensor<float> data;
+    Tensor<float> grad;
     int size;
     set<shared_ptr<Value>> prev;
     std::string op;
@@ -27,23 +27,24 @@ public:
     template <typename T>
     Value(initializer_list<T> data);
     // Constructor
-    Value(Tensor<double> data, std::initializer_list<shared_ptr<Value>> children, string op, string label);
+    Value(Tensor<float> data, std::initializer_list<shared_ptr<Value>> children, string op, string label);
     //copy constructor
     Value(const Value &other);
     //move constructor
     Value(Value &&other) noexcept;
     ~Value();
-    shared_ptr<Value> pow(double n);
+    shared_ptr<Value> pow(float n);
 
-    Tensor<double> getData();
-    void setData(Tensor<double> data);
+    Tensor<float> getData();
+    void setData(Tensor<float> data);
 
-    void setGrad(Tensor<double> grad);
-    Tensor<double> getGrad();
+    void setGrad(Tensor<float> grad);
+    Tensor<float> getGrad();
 
     void set_grad_1();
 
-    
+    void zero_grad();
+
     shared_ptr<Value> subTensor(vector<vector<size_t>> dimRanges);
     
 
@@ -63,16 +64,16 @@ public:
 
 
 
-    shared_ptr<Value> operator+(const double &other);
+    shared_ptr<Value> operator+(const float &other);
     shared_ptr<Value> operator+(const shared_ptr<Value> &other);
 
-    shared_ptr<Value> operator*(const double &other);
+    shared_ptr<Value> operator*(const float &other);
     shared_ptr<Value> operator*(const shared_ptr<Value> &other);
 
-    shared_ptr<Value> operator-(const double &other);
+    shared_ptr<Value> operator-(const float &other);
     shared_ptr<Value> operator-(const std::shared_ptr<Value>& other);
 
-    shared_ptr<Value> operator/(const double &other);
+    shared_ptr<Value> operator/(const float &other);
     shared_ptr<Value> operator/(const shared_ptr<Value> &other);
 
     shared_ptr<Value> dot(const shared_ptr<Value> &other);
@@ -81,16 +82,16 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const shared_ptr<Value> &v);
     void backward();
     
-    friend std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs, const double& rhs);
+    friend std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs, const float& rhs);
     friend std::shared_ptr<Value> operator+(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs);
     
-    friend std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const double& rhs);
+    friend std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const float& rhs);
     friend std::shared_ptr<Value> operator*(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs);    
 
-    friend std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const double& rhs);
+    friend std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const float& rhs);
     friend std::shared_ptr<Value> operator-(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs);  
     
-    friend std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const double& rhs);
+    friend std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const float& rhs);
     friend std::shared_ptr<Value> operator/(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs);
 
 };

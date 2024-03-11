@@ -27,10 +27,53 @@ Compute2D<T>::~Compute2D(){
 template <typename T>
 void Compute2D<T>:: setData(T* data){
     this->data = data;
+    cudaMemcpy(this->data, data, this->allocSize, cudaMemcpyHostToDevice);
 }
 template <typename T>
 T* Compute2D<T>::getData(){
     return this->data;
+}
+
+template <typename T>
+void Compute2D<T>::allocateMemory(T* data, size_t M, size_t N){
+    cudaDeviceProp prop;
+    int deviceId;
+    cudaGetDevice(&deviceId); // Get current device ID
+    cudaGetDeviceProperties(&prop, deviceId); // Get device properties
+
+    // Example: Query some of the device's limitations
+    int maxThreadsPerBlock = prop.maxThreadsPerBlock;
+    dim3 maxThreadsDim(prop.maxThreadsDim[0], prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
+    dim3 maxGridSize(prop.maxGridSize[0], prop.maxGridSize[1], prop.maxGridSize[2]);
+
+    // Choose a block size (threads per block)
+    // Adjust this based on the maximum threads per block and your kernel's requirements
+    int blockSizeX = (maxThreadsDim.x < 32) ? maxThreadsDim.x : 32;
+    int blockSizeY = (maxThreadsDim.y < 32) ? maxThreadsDim.y : 32;
+    dim3 blockSize(blockSizeX, blockSizeY);
+
+    // Calculate grid size to cover the whole data set
+    dim3 gridSize((M + blockSize.x - 1) / blockSize.x, (N + blockSize.y - 1) / blockSize.y);
+
+    // Ensure the grid size does not exceed the device's maximum grid size
+    gridSize.x = (gridSize.x > maxGridSize.x) ? maxGridSize.x : gridSize.x;
+    gridSize.y = (gridSize.y > maxGridSize.y) ? maxGridSize.y : gridSize.y;
+
+    cout<<"Max thread size "<<maxThreadsPerBlock<<endl;
+    cout<<"Max thread dim "<<maxThreadsDim.x<<" "<<maxThreadsDim.y<<" "<<maxThreadsDim.z<<endl;
+    cout<<"Max Grid Size "<<maxGridSize.x<<" "<<maxGridSize.y<<" "<<maxGridSize.z<<endl;
+    // this->block = blockSize;
+    // this->grid = gridSize;
+    // cout<<blockSize.x<<" "<<blockSize.y<<endl;
+    // cout<<gridSize.x<<" "<<gridSize.y<<endl;
+    // this-> allocSize = M * N * sizeof(T);
+    // if(cudaMallocManaged(&data, allocSize) != cudaSuccess){
+    //     cerr<<"Error in allocating memory"<<endl;
+    //     cerr<<"Size of the array is "<<M<<"x"<<N<<endl;
+    //     cerr<<"Tried to allocate "<<allocSize<<" bytes"<<endl;
+    //     cerr<<cudaGetErrorString(cudaGetLastError())<<endl;
+    //     throw runtime_error("Error in allocating memory");
+    // }
 }
 
 template <typename T>
@@ -39,15 +82,19 @@ Compute2D<T>::Compute2D(int x, int y){
     this->size = x * y;
     this->shape[0] = x;
     this->shape[1] = y;
-    int allocSize = this->size * sizeof(T);
+    this->allocSize = x * y * sizeof(T);
 
-    this->block = dim3(x, y);
+    this->block = dim3(32, 32);
     this->grid = dim3((x + this->block.x - 1) / this->block.x, (y + this->block.y - 1) / this->block.y);
     
     if(cudaMallocManaged(&this->data, allocSize) != cudaSuccess){
-        cout<<"Compute2D: Error in allocating memory"<<endl;
-        // TODO: Add error message
-        cout<<cudaGetErrorString(cudaGetLastError())<<endl;
+        allocateMemory(this->data, x, y);
+        cerr<<"Error in allocating memory"<<endl;
+        cerr<<"Block size is "<<this->block.x<<"x"<<this->block.y<<endl;
+        cerr<<"Grid size is "<<this->grid.x<<"x"<<this->grid.y<<endl;
+        cerr<<"Size of the array is "<<x<<"x"<<y<<endl;
+        cerr<<"Tried to allocate "<<allocSize<<" bytes"<<endl;
+        cerr<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
     }
 
@@ -119,7 +166,7 @@ T* Compute2D<T>::add(BaseCompute<T>& other){
 }
 
 template <typename T>
-T*  Compute2D<T>::add(double b){
+T*  Compute2D<T>::add(float b){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -216,10 +263,12 @@ T* Compute2D<T>::mul(BaseCompute<T>& other){
     if (size != this->size){
         throw invalid_argument("Size of the two arrays must be the same");
     }
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
-        cout<<"Error in allocating memory"<<endl;
-        cout<<cudaGetErrorString(cudaGetLastError())<<endl;
+        cerr<<"Error in allocating memory"<<endl;
+        cerr<<cudaGetErrorString(cudaGetLastError())<<endl;
+        cerr<<"Size of the array is "<<shape[0]<<"x"<<shape[1]<<endl;
+        cerr<<"Tried to allocate "<<size * sizeof(T)<<" bytes"<<endl;
         throw runtime_error("Error in allocating memory");
     }
 
@@ -247,7 +296,7 @@ T* Compute2D<T>::mul(BaseCompute<T>& other){
 }
 
 template <typename T>
-T* Compute2D<T>::mul(double b){
+T* Compute2D<T>::mul(float b){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -284,7 +333,7 @@ T *Compute2D<T>::greater(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute2D<T>::greater(double b)
+T *Compute2D<T>::greater(float b)
 {
     T *result = new T[size];
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
@@ -324,7 +373,7 @@ T *Compute2D<T>::less(BaseCompute<T> &compute)
 
 
 template <typename T>
-T *Compute2D<T>::less(double b)
+T *Compute2D<T>::less(float b)
 {
     T *result = new T[size];
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
@@ -363,7 +412,7 @@ T *Compute2D<T>::equal(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute2D<T>::equal(double b)
+T *Compute2D<T>::equal(float b)
 {
     T *result = new T[size];
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
@@ -402,7 +451,7 @@ T *Compute2D<T>::greaterEqual(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute2D<T>::greaterEqual(double b)
+T *Compute2D<T>::greaterEqual(float b)
 {
     T *result = new T[size];
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
@@ -441,7 +490,7 @@ T *Compute2D<T>::lessEqual(BaseCompute<T> &compute)
 }
 
 template <typename T>
-T *Compute2D<T>::lessEqual(double b)
+T *Compute2D<T>::lessEqual(float b)
 {
     T *result = new T[size];
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
@@ -482,7 +531,7 @@ T* Compute2D<T>::dot(BaseCompute<T>& compute){
 }
 
 template <typename T>
-T* Compute2D<T>::pow(double n){
+T* Compute2D<T>::pow(float n){
     T* result = new T[size];
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
@@ -568,13 +617,13 @@ T *Compute2D<T>::relu()
 
 template <typename T>
 void Compute2D<T>::fill(T value){
-    fillKernel2d<T><<<this->grid, this->block>>>(this->data, value, shape[0], shape[1]);
+    fillKernel2d<<<this->grid, this->block>>>(this->data, value, shape[0], shape[1]);
 
 }
 
 template <typename T>
 void Compute2D<T>::fillRandom(unsigned int seed)
 {
-    fillRandomKernel2d<T><<<this->grid, this->block>>>(this->data, shape[0], shape[1], seed);
+    fillRandomKernel2d<<<this->grid, this->block>>>(this->data, shape[0], shape[1], seed);
 
 }

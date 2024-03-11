@@ -29,6 +29,10 @@ public:
     Tensor(Tensor&& other);
     Tensor<T> operator=(const Tensor<T>& other);
     Tensor<T> operator=(Tensor<T>& other);
+    
+    vector<size_t> getShape(){
+        return shape;
+    }
 
     Tensor<T> randomize();
     Tensor<T> randomize(unsigned int seed);
@@ -53,7 +57,7 @@ public:
     Tensor neg() const;
     Tensor exp();
     Tensor log();
-    Tensor pow(double n);
+    Tensor pow(float n);
     Tensor tanh();
 
     Tensor relu();
@@ -63,24 +67,24 @@ public:
     Tensor dot(Tensor &other);
 
     Tensor operator*(const Tensor &other);
-    Tensor operator*(const double &other);
+    Tensor operator*(const float &other);
     Tensor operator/(Tensor &other);
     Tensor operator+(const Tensor& other);
-    Tensor operator+(const double other);
+    Tensor operator+(const float other);
     Tensor operator-(const Tensor &other);
     
     Tensor operator>(const Tensor &other);
-    Tensor operator>(const double &other);
+    Tensor operator>(const float &other);
     Tensor operator>=(const Tensor &other);
-    Tensor operator>=(const double &other);
+    Tensor operator>=(const float &other);
 
     Tensor operator<=(const Tensor &other);
-    Tensor operator<=(const double &other);
+    Tensor operator<=(const float &other);
     Tensor operator<(const Tensor &other);
-    Tensor operator<(const double &other);
+    Tensor operator<(const float &other);
 
     Tensor operator==(const Tensor &other);
-    Tensor operator==(const double &other);
+    Tensor operator==(const float &other);
 
     template <typename U>
     friend ostream &operator<<(ostream& os, const Tensor<U>& t);
@@ -95,24 +99,24 @@ public:
     friend Tensor operator*(const Tensor<U>& t1, const Tensor<U>& t2);
 
     template <typename U>
-    friend Tensor operator*(const double& t1, const Tensor<U>& t2);
+    friend Tensor operator*(const float& t1, const Tensor<U>& t2);
 
     template <typename U>
-    friend Tensor operator*(const Tensor<U>& t1, const double& t2);
+    friend Tensor operator*(const Tensor<U>& t1, const float& t2);
 
     
     template <typename U>
     friend Tensor operator/(const Tensor<U>& t1, const Tensor<U>& t2);
 
     template <typename U>
-    friend Tensor operator/(const Tensor<U>& t1, const double& t2);
+    friend Tensor operator/(const Tensor<U>& t1, const float& t2);
 
     template <typename U>
-    friend Tensor operator/(const double& t1, const Tensor<U>& t2);
+    friend Tensor operator/(const float& t1, const Tensor<U>& t2);
 
 
     template <typename U>
-    friend Tensor operator+(const Tensor<U>& t1, const double& t2);
+    friend Tensor operator+(const Tensor<U>& t1, const float& t2);
 
     template <typename U>
     friend Tensor dot(const Tensor<U>& t1, const Tensor<U>& t2);

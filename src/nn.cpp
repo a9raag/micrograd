@@ -25,7 +25,7 @@ public:
         // std::uniform_real_distribution<> dis(-1.0, 1.0);
 
         this->n_inputs = n_inputs;
-        Tensor<double> wt = Tensor<double>({n_input, n_outs}).randomize();
+        Tensor<float> wt = Tensor<float>({n_input, n_outs}).randomize();
         this->weights = make_shared<Value>(wt);
         
     }
@@ -37,7 +37,7 @@ public:
     shared_ptr<Value> operator()(shared_ptr<Value> &inputs)
     {
         shared_ptr<Value> val = inputs->dot(this->weights);
-        auto bias_tensor = Tensor<double>(val->getData().shape);
+        auto bias_tensor = Tensor<float>(val->getData().shape);
         bias_tensor.randomize();
         this->bias = make_shared<Value>(bias_tensor);
         return val + bias;
@@ -85,7 +85,7 @@ class MLP{
             return out;
         }
 
-        void update_params(double lr){
+        void update_params(float lr){
             for (auto &layer : layers)
             {
                 auto params = layer.get_params();
@@ -128,12 +128,12 @@ class MLP{
 // {
 //     MLP mlp = MLP(3, {4, 4, 1});
 
-//     vector<vector<double>> xs = {
+//     vector<vector<float>> xs = {
 //         {2.0, 3.0, -1.0},
 //         {3.0, -1.0, 0.5},
 //         {0.5, 1.0, 1.0},
 //         {1.0, 1.0, -1.0}};
-//     vector<double> ys = {1.0, -1.0, -1.0, 1.0};
+//     vector<float> ys = {1.0, -1.0, -1.0, 1.0};
 //     vector<shared_ptr<Value>> ysv;
 //     for (auto y : ys)
 //     {

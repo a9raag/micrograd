@@ -17,9 +17,9 @@ class BaseCompute {
             throw std::runtime_error("Not implemented");
         }
         virtual T* add(BaseCompute<T>& compute) = 0;
-        virtual T* add(double b) = 0;
+        virtual T* add(float b) = 0;
         virtual T* mul(BaseCompute<T>& compute) = 0;
-        virtual T* mul(double b) = 0;
+        virtual T* mul(float b) = 0;
         virtual T* dot(BaseCompute<T>& compute) = 0;
         virtual T* neg(){
             return this->mul(-1);
@@ -27,17 +27,17 @@ class BaseCompute {
         };
 
         virtual T* greater(BaseCompute<T>& compute) = 0;
-        virtual T* greater(double b) = 0;
+        virtual T* greater(float b) = 0;
         virtual T* less(BaseCompute<T>& compute) = 0;
-        virtual T* less(double b) = 0;
+        virtual T* less(float b) = 0;
         virtual T* equal(BaseCompute<T>& compute) = 0;
-        virtual T* equal(double b) = 0;
+        virtual T* equal(float b) = 0;
         virtual T* greaterEqual(BaseCompute<T>& compute) = 0;
-        virtual T* greaterEqual(double b) = 0;
+        virtual T* greaterEqual(float b) = 0;
         virtual T* lessEqual(BaseCompute<T>& compute) = 0;
-        virtual T* lessEqual(double b) = 0;
+        virtual T* lessEqual(float b) = 0;
 
-        virtual T* pow(double n) = 0;
+        virtual T* pow(float n) = 0;
         virtual T* tanh() = 0;
         
         virtual T* sum() = 0;
