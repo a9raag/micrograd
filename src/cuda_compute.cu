@@ -3,6 +3,60 @@
 #include <curand_kernel.h>
 
 
+
+template <typename T> 
+__global__ void fancyIndexingKernel(T* data, T* result, size_t* indices, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        result[i] = data[indices[i]];
+    }
+}
+
+template <typename T>
+__global__ void fancyIndexingKernel2d(T* data, T* result, size_t data_x, size_t data_y,  size_t x, size_t y, size_t* indices_x, size_t* indices_y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = data[indices_x[i] * data_y + indices_y[j]];
+    }
+}
+
+template <typename T>
+__global__ void toIntKernel(T* data, int* result, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        result[i] = (int)data[i];
+    }
+}
+
+template <typename T>
+__global__ void toIntKernel2d(T* data, int* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = (int)data[i * y + j];
+    }
+}
+
+template <typename T>
+__global__ void toFloatKernel(T* data, float_t* result, size_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        result[i] = (float)data[i];
+    }
+}
+
+template <typename T>
+__global__ void toFloatKernel2d(T* data, float* result, size_t x, size_t y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < x && j < y) {
+        result[i * y + j] = (float)data[i * y + j];
+    }
+}
+
+
+
 template <typename T>
 __global__ void transposeKernel2d(T* data, T* result, size_t x, size_t y) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;

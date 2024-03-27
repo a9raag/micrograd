@@ -429,3 +429,46 @@ void Compute1D<T>::fillRandom(unsigned int seed){
     fillRandomKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, size, seed);
 
 }
+
+template <typename T>
+int *Compute1D<T>::toInt()
+{
+    int* out;
+    if(cudaMallocManaged(&out, this->size * sizeof(int)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    toIntKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, out, size);
+    return out;
+}
+
+template <typename T>
+float *Compute1D<T>::toFloat()
+{
+    float* out;
+    if(cudaMallocManaged(&out, this->size * sizeof(float)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    toFloatKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, out, size);
+    return out;
+}
+
+template <typename T>
+T *Compute1D<T>::fancyIndexing(vector<vector<size_t>> indices)
+{
+    T* out;
+    size_t newSize = indices.size();
+    if(cudaMallocManaged(&out, newSize * sizeof(T)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    size_t * deviceIndices; 
+    if(cudaMallocManaged(&deviceIndices, newSize * sizeof(size_t)) != cudaSuccess){
+        cout<<"Error in allocating memory"<<endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    cudaMemcpy(deviceIndices, indices[0].data(), newSize * sizeof(int), cudaMemcpyHostToDevice);
+    fancyIndexingKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, out, deviceIndices, newSize);
+    return out;
+}

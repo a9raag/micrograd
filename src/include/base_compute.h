@@ -62,6 +62,10 @@ class BaseCompute {
             return this->shape;
         }
 
+        virtual int* toInt() = 0;
+        virtual float* toFloat() = 0;
+
+        virtual T* fancyIndexing(vector<vector<size_t>> indices) = 0;
 };
 
 #endif // BASE_COMPUTE_H

@@ -62,6 +62,11 @@ public:
     size_t* getShape() {
         return this->shape;
     }
+
+    int* toInt();
+    float* toFloat();
+
+    T* fancyIndexing(vector<vector<size_t>> indices);
 };
 
 #endif // COMPUTE2D_H

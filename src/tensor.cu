@@ -47,6 +47,7 @@ Tensor<T>::Tensor(vector<size_t> shape) {
 
 template <typename T>
 Tensor<T>::Tensor(const Tensor& other) {
+    cout<<"copy constructor"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -61,6 +62,7 @@ Tensor<T>::Tensor(const Tensor& other) {
 
 template <typename T>
 Tensor<T>::Tensor(Tensor&& other) {
+    cout<<"move constructor"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -71,6 +73,7 @@ Tensor<T>::Tensor(Tensor&& other) {
 
 template <typename T>
 Tensor<T> Tensor<T>::operator=(const Tensor<T>& other) {
+    cout<<"copy assignment"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -84,6 +87,7 @@ Tensor<T> Tensor<T>::operator=(const Tensor<T>& other) {
 
 template <typename T>
 Tensor<T> Tensor<T>::operator=(Tensor<T>& other) {
+    cout<<"copy assignment non const"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -202,6 +206,49 @@ Tensor<T> Tensor<T>::subTensor(vector<vector<size_t>> dimRanges)
     vector<size_t> newShape = {result_x, result_y};
     Tensor<T> result = Tensor<T>(newShape);
     result.setData(dataCompute->subArray(dimRanges));
+    return result;
+}
+
+template <typename T>
+Tensor<T> Tensor<T>::fancyIndexing(vector<vector<size_t>> indices)
+{
+    if (indices.size() != ndims)
+    {
+        throw std::invalid_argument("Number of indices must match number of dimensions.");
+    }
+
+    size_t resultSize = 1;
+    for (size_t i = 0; i < indices.size(); ++i)
+    {
+        if (indices[i].size() == 0)
+        {
+            resultSize *= shape[i];
+        }
+        else
+        {
+            resultSize *= indices[i].size();
+        }
+    }
+
+    vector<size_t> newShape = {resultSize};
+    Tensor<T> result = Tensor<T>(newShape);
+    result.setData(dataCompute->fancyIndexing(indices));
+    return result;
+}
+
+template <typename T>
+Tensor<int> Tensor<T>::toInt()
+{
+    Tensor<int> result = Tensor<int>(shape);
+    result.setData(dataCompute->toInt());
+    return result;
+}
+
+template <typename T>
+Tensor<float> Tensor<T>::toFloat()
+{
+    Tensor<float> result = Tensor<float>(shape);
+    result.setData(dataCompute->toFloat());
     return result;
 }
 

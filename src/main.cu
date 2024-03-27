@@ -766,7 +766,7 @@ void train_bigram_probability(){
 }
 
 void train_bigram_nn(){
-    Data data("../names.txt");
+    Data data("/home/anurag/dev/micrograd/names.txt");
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -774,7 +774,8 @@ void train_bigram_nn(){
     map<int, char> itos = data.getItos();
 
 
-    Tensor<float> N = Tensor<float>({data.getVocabSize(), data.getVocabSize()}).fill(0.0);
+    Tensor<float> N = Tensor<float>({data.getVocabSize(), data.getVocabSize()});
+    N.fill(0.0);
     vector<float> xsv; 
     vector<float> ysv;
     cout<<"START: Create input and output data"<<endl;
@@ -804,6 +805,12 @@ void train_bigram_nn(){
 
     int epoc = 100;
     float lr = 0.01;
+    vector<vector<size_t>> indices = {{}}; 
+    for(int i = 0; i < xsv.size(); i++){
+        indices[0].push_back(i);
+        indices[1].push_back((size_t)ysv[i]);
+
+    }
 
     for(int i = 0; i < epoc; i++){
         auto logits = x->dot(w_val);
@@ -814,10 +821,7 @@ void train_bigram_nn(){
         cout<<temp_count->subTensor({{1, 2}, {0, 10}})<<endl;
         auto probs = counts / temp_count; 
 
-        Tensor<float> targetProbs = Tensor<float>({ysv.size()});
-        for(int j = 0; j < ysv.size(); j++){
-            targetProbs(j) = probs->getData()(j, (int)ysv[j]);
-        }   
+        Tensor<float> targetProbs = probs->getData().fancyIndexing(indices);
         auto loss = make_shared<Value>(targetProbs)->log()->mean();
 
         w_val->zero_grad();
@@ -835,7 +839,7 @@ void train_bigram_nn(){
 }
 int main(int argc, char const *argv[]){
     // test_tensor_1d();
-    // test_tensor_2d();
+    test_tensor_2d();
     // test_value2d();
     // test_backprop();
     // test_gradient();

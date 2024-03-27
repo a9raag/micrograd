@@ -48,6 +48,13 @@ public:
     
     Tensor<T> reshape(vector<size_t> newShape);
     Tensor<T> subTensor(vector<vector<size_t>> dimRanges);
+    
+    Tensor<T> fancyIndexing(vector<vector<size_t>> indices);
+
+    Tensor<int> toInt();
+    Tensor<float> toFloat();
+
+
 
     Tensor transpose();
 

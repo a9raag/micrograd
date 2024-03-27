@@ -35,48 +35,6 @@ T* Compute2D<T>::getData(){
 }
 
 template <typename T>
-void Compute2D<T>::allocateMemory(T* data, size_t M, size_t N){
-    cudaDeviceProp prop;
-    int deviceId;
-    cudaGetDevice(&deviceId); // Get current device ID
-    cudaGetDeviceProperties(&prop, deviceId); // Get device properties
-
-    // Example: Query some of the device's limitations
-    int maxThreadsPerBlock = prop.maxThreadsPerBlock;
-    dim3 maxThreadsDim(prop.maxThreadsDim[0], prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
-    dim3 maxGridSize(prop.maxGridSize[0], prop.maxGridSize[1], prop.maxGridSize[2]);
-
-    // Choose a block size (threads per block)
-    // Adjust this based on the maximum threads per block and your kernel's requirements
-    int blockSizeX = (maxThreadsDim.x < 32) ? maxThreadsDim.x : 32;
-    int blockSizeY = (maxThreadsDim.y < 32) ? maxThreadsDim.y : 32;
-    dim3 blockSize(blockSizeX, blockSizeY);
-
-    // Calculate grid size to cover the whole data set
-    dim3 gridSize((M + blockSize.x - 1) / blockSize.x, (N + blockSize.y - 1) / blockSize.y);
-
-    // Ensure the grid size does not exceed the device's maximum grid size
-    gridSize.x = (gridSize.x > maxGridSize.x) ? maxGridSize.x : gridSize.x;
-    gridSize.y = (gridSize.y > maxGridSize.y) ? maxGridSize.y : gridSize.y;
-
-    cout<<"Max thread size "<<maxThreadsPerBlock<<endl;
-    cout<<"Max thread dim "<<maxThreadsDim.x<<" "<<maxThreadsDim.y<<" "<<maxThreadsDim.z<<endl;
-    cout<<"Max Grid Size "<<maxGridSize.x<<" "<<maxGridSize.y<<" "<<maxGridSize.z<<endl;
-    // this->block = blockSize;
-    // this->grid = gridSize;
-    // cout<<blockSize.x<<" "<<blockSize.y<<endl;
-    // cout<<gridSize.x<<" "<<gridSize.y<<endl;
-    // this-> allocSize = M * N * sizeof(T);
-    // if(cudaMallocManaged(&data, allocSize) != cudaSuccess){
-    //     cerr<<"Error in allocating memory"<<endl;
-    //     cerr<<"Size of the array is "<<M<<"x"<<N<<endl;
-    //     cerr<<"Tried to allocate "<<allocSize<<" bytes"<<endl;
-    //     cerr<<cudaGetErrorString(cudaGetLastError())<<endl;
-    //     throw runtime_error("Error in allocating memory");
-    // }
-}
-
-template <typename T>
 Compute2D<T>::Compute2D(int x, int y){
     this->data = new T[x * y];
     this->size = x * y;
@@ -88,7 +46,6 @@ Compute2D<T>::Compute2D(int x, int y){
     this->grid = dim3((x + this->block.x - 1) / this->block.x, (y + this->block.y - 1) / this->block.y);
     
     if(cudaMallocManaged(&this->data, allocSize) != cudaSuccess){
-        allocateMemory(this->data, x, y);
         cerr<<"Error in allocating memory"<<endl;
         cerr<<"Block size is "<<this->block.x<<"x"<<this->block.y<<endl;
         cerr<<"Grid size is "<<this->grid.x<<"x"<<this->grid.y<<endl;
@@ -626,4 +583,88 @@ void Compute2D<T>::fillRandom(unsigned int seed)
 {
     fillRandomKernel2d<<<this->grid, this->block>>>(this->data, shape[0], shape[1], seed);
 
+}
+
+template <typename T>
+int *Compute2D<T>::toInt()
+{
+    int *result = new int[size];
+    if (cudaMallocManaged(&result, size * sizeof(int)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+
+    toIntKernel2d<<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
+
+    return result;
+}
+
+template <typename T>
+float *Compute2D<T>::toFloat()
+{
+    float *result = new float[size];
+    if (cudaMallocManaged(&result, size * sizeof(float)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+
+    toFloatKernel2d<<<this->grid, this->block>>>(this->data, result, shape[0], shape[1]);
+
+    return result;
+}
+
+template <typename T>
+T *Compute2D<T>::fancyIndexing(vector<vector<size_t>> indices)
+{
+    if (indices.size() != 2)
+    {
+        throw invalid_argument("Indices must be a 2D array");
+    }
+    if (indices[0].size() != 1 || indices[1].size() != 1)
+    {
+        throw invalid_argument("Each dimension range must be a 1D array of size 1");
+    }
+    if(indices[0].size() != indices[1].size()){
+        throw invalid_argument("Each dimension range must be of the same size");
+    }
+    for (auto index: indices){
+        if (index[0] > shape[0]){
+            throw invalid_argument("Index must be within the shape of the array");
+        }
+    }
+    size_t result_size = indices[0].size();
+    T *result = new T[result_size];
+    if (cudaMallocManaged(&result, result_size * sizeof(T)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+
+    size_t* deviceIndicesX; 
+    size_t* deviceIndicesY;
+    if (cudaMallocManaged(&deviceIndicesX, result_size * sizeof(size_t)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+    if (cudaMallocManaged(&deviceIndicesY, result_size * sizeof(size_t)) != cudaSuccess)
+    {
+        cout << "Error in allocating memory" << endl;
+        cout << cudaGetErrorString(cudaGetLastError()) << endl;
+        throw runtime_error("Error in allocating memory");
+    }
+
+    cudaMemcpy(deviceIndicesX, indices[0].data(), result_size * sizeof(size_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceIndicesY, indices[1].data(), result_size * sizeof(size_t), cudaMemcpyHostToDevice);
+
+    dim3 tempBlock(result_size, 1);
+    dim3 tempGrid((result_size + tempBlock.x - 1) / tempBlock.x, 1);
+    fancyIndexingKernel2d<<<tempGrid, tempBlock>>>(this->data, result, shape[0], shape[1], result_size, result_size, deviceIndicesX, deviceIndicesY);
+    return result;
 }
