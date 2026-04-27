@@ -1,15 +1,21 @@
 #include "include/tensor.h"
 #include "include/compute1d.h"
 #include "include/compute2d.h"
+#include "include/cpu_compute1d.h"
+#include "include/cpu_compute2d.h"
+#include "include/device_config.h"
 #include "tensor.h"
 
 using namespace std;
-// get Compute Type from shape
+// get Compute Type from shape, honouring the MICROGRAD_DEVICE env variable
 template <typename T>
 unique_ptr<BaseCompute<T>> getComputeType(vector<size_t> shape) {
+    bool cpu = device_config::use_cpu();
     if (shape.size() == 1) {
+        if (cpu) return make_unique<CpuCompute1D<T>>(shape[0]);
         return make_unique<Compute1D<T>>(shape[0]);
     } else if (shape.size() == 2) {
+        if (cpu) return make_unique<CpuCompute2D<T>>(shape[0], shape[1]);
         return make_unique<Compute2D<T>>(shape[0], shape[1]);
     } else {
         throw std::invalid_argument("Only 1D and 2D tensors are supported.");
@@ -135,7 +141,7 @@ T& Tensor<T>::operator()(Args ... args) {
 
 template <typename T>
 void Tensor<T>::setData(vector<T> data){
-    this->dataCompute->setData(data);
+    this->dataCompute->setData(data.data());
 }
 
 template <typename T>
@@ -151,7 +157,7 @@ vector<T> Tensor<T>::getData(){
 template <typename T>
 void Tensor<T>::print_recursive(ostream& os , size_t i, size_t j) const{
     auto data = dataCompute->getData();
-    cudaDeviceSynchronize();
+    if (!device_config::use_cpu()) cudaDeviceSynchronize();
     if (i == ndims - 1){
         os << "[";
         for (int k = 0;  k < shape[i]; ++k) {
