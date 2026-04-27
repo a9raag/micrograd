@@ -19,7 +19,8 @@ constexpr const char* available_commands =
     "bigram-probability, bigram-nn";
 
 string get_dataset_path() {
-    return string(MICROGRAD_SOURCE_DIR) + dataset_relative_path;
+    static const string path = string(MICROGRAD_SOURCE_DIR) + dataset_relative_path;
+    return path;
 }
 }
 
@@ -885,6 +886,7 @@ int main(int argc, char const *argv[]){
         train_bigram_nn();
     } else {
         cerr << "Unknown command: " << command << endl;
+        cerr << "Default command: tensor2d" << endl;
         cerr << "Available commands: " << available_commands << endl;
         return 1;
     }
