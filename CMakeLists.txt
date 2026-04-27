@@ -1,3 +1,5 @@
+# CMake 3.18 is required for check_language(CUDA), which lets configure succeed
+# on systems where the CUDA toolkit is not installed.
 cmake_minimum_required(VERSION 3.18)
 project(micrograd VERSION 0.1.0 LANGUAGES CXX)
 

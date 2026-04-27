@@ -12,10 +12,14 @@
 using namespace std;
 
 namespace {
-constexpr const char* kDatasetRelativePath = "/data/names.txt";
+constexpr const char* dataset_relative_path = "/data/names.txt";
+constexpr const char* available_commands =
+    "tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, "
+    "value-broadcast, layer, mlp, large-mlp, sub-tensor, data, "
+    "bigram-probability, bigram-nn";
 
 string get_dataset_path() {
-    return string(MICROGRAD_SOURCE_DIR) + kDatasetRelativePath;
+    return string(MICROGRAD_SOURCE_DIR) + dataset_relative_path;
 }
 }
 
@@ -881,7 +885,7 @@ int main(int argc, char const *argv[]){
         train_bigram_nn();
     } else {
         cerr << "Unknown command: " << command << endl;
-        cerr << "Available commands: tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, value-broadcast, layer, mlp, large-mlp, sub-tensor, data, bigram-probability, bigram-nn" << endl;
+        cerr << "Available commands: " << available_commands << endl;
         return 1;
     }
 
