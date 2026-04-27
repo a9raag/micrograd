@@ -28,6 +28,7 @@ if(MICROGRAD_ENABLE_CUDA)
         )
 
         add_test(NAME micrograd_tensor2d_smoke COMMAND micrograd tensor2d)
+        add_test(NAME micrograd_grad_check COMMAND micrograd grad-check)
     else()
         message(WARNING "CUDA compiler not found; skipping the micrograd executable target.")
     endif()

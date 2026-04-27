@@ -19,15 +19,11 @@ public:
     
     Layer(size_t n_input, size_t n_outs)
     {
-
-        // std::random_device rd;  // Will be used to obtain a seed for the random number engine
-        // std::mt19937 gen(rd()); // Standard mersenne_twisterx_engine seeded with rd()
-        // std::uniform_real_distribution<> dis(-1.0, 1.0);
-
         this->n_inputs = n_inputs;
         Tensor<float> wt = Tensor<float>({n_input, n_outs}).randomize();
         this->weights = make_shared<Value>(wt);
-        
+        Tensor<float> bt = Tensor<float>({1, n_outs}).randomize();
+        this->bias = make_shared<Value>(bt);
     }
     shared_ptr<Value> get_bias()
     {
@@ -37,9 +33,6 @@ public:
     shared_ptr<Value> operator()(shared_ptr<Value> &inputs)
     {
         shared_ptr<Value> val = inputs->dot(this->weights);
-        auto bias_tensor = Tensor<float>(val->getData().shape);
-        bias_tensor.randomize();
-        this->bias = make_shared<Value>(bias_tensor);
         return val + bias;
     }
 

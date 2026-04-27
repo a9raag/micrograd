@@ -83,6 +83,25 @@ __global__ void subArrayKernel2d(T* data, T* result, size_t datax, size_t datay,
     }
 }
 
+// Scatter-add: write src[i] into dst[i + start] (1D)
+template <typename T>
+__global__ void scatterAddKernel(T* dst, T* src, size_t src_n, size_t start) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < (int)src_n) {
+        dst[i + start] += src[i];
+    }
+}
+
+// Scatter-add: write src[i,j] into dst[i+start_x, j+start_y] (2D)
+template <typename T>
+__global__ void scatterAddKernel2d(T* dst, T* src, size_t dst_y, size_t src_x, size_t src_y, size_t start_x, size_t start_y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i < (int)src_x && j < (int)src_y) {
+        dst[(i + start_x) * dst_y + (j + start_y)] += src[i * src_y + j];
+    }
+}
+
 template <typename T>
 __global__ void fillKernel(T* data, T val, int size){
     int i = blockIdx.x * blockDim.x + threadIdx.x;

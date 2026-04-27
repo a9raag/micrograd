@@ -23,7 +23,7 @@ constexpr const char* build_dataset_relative_path = "../data/names.txt";
 constexpr const char* available_commands =
     "tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, "
     "value-broadcast, layer, mlp, large-mlp, sub-tensor, data, "
-    "bigram-probability, bigram-nn";
+    "bigram-probability, bigram-nn, grad-check";
 
 string resolve_dataset_path(const char* argv0) {
     vector<fs::path> candidates = {
@@ -883,6 +883,228 @@ void train_bigram_nn(){
     
 
 }
+
+// Finite-difference gradient check for key autograd operations.
+// For each tested op, we:
+//   1. Run the analytical backward pass via Value::backward().
+//   2. Perturb each input element by ±eps and estimate the gradient numerically.
+//   3. Report PASS/FAIL for each element.
+void test_grad_check() {
+    cout << "==========================" << endl;
+    cout << "START: Gradient Check Tests" << endl;
+    cout << "==========================" << endl;
+
+    const float eps = 1e-3f;
+    const float tol = 1e-2f;
+    bool all_passed = true;
+
+    // Helper: check one gradient component and print PASS/FAIL.
+    auto check = [&](const string& name, float analytical, float numerical) {
+        float scale = max(1.0f, max(abs(analytical), abs(numerical)));
+        bool ok = (abs(analytical - numerical) / scale) < tol;
+        cout << (ok ? "[PASS] " : "[FAIL] ") << name
+             << " analytical=" << analytical
+             << " numerical=" << numerical << endl;
+        if (!ok) all_passed = false;
+    };
+
+    // Helper: get the scalar (first element) from a Value's data tensor.
+    auto scalar_data = [](const shared_ptr<Value>& v) -> float {
+        cudaDeviceSynchronize();
+        return v->getData()(0);
+    };
+
+    // ------------------------------------------------------------------ //
+    // Test: tanh on a 1D tensor, loss = sum(tanh(x))                      //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> xd({3});
+        xd(0) = 0.5f; xd(1) = -0.3f; xd(2) = 1.2f;
+        cudaDeviceSynchronize();
+
+        auto x = make_shared<Value>(xd);
+        auto loss = x->tanh()->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < 3; i++) {
+            Tensor<float> xp({3}); xp(0) = xd(0); xp(1) = xd(1); xp(2) = xd(2);
+            Tensor<float> xm({3}); xm(0) = xd(0); xm(1) = xd(1); xm(2) = xd(2);
+            xp(i) += eps; xm(i) -= eps;
+            cudaDeviceSynchronize();
+
+            auto fp = make_shared<Value>(xp)->tanh()->sum();
+            auto fm = make_shared<Value>(xm)->tanh()->sum();
+            float num_grad = (scalar_data(fp) - scalar_data(fm)) / (2.0f * eps);
+            float ana_grad = x->getGrad()(i);
+            check("tanh grad[" + to_string(i) + "]", ana_grad, num_grad);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: exp on a 1D tensor, loss = sum(exp(x))                        //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> xd({3});
+        xd(0) = 0.1f; xd(1) = -0.5f; xd(2) = 0.8f;
+        cudaDeviceSynchronize();
+
+        auto x = make_shared<Value>(xd);
+        auto loss = x->exp()->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < 3; i++) {
+            Tensor<float> xp({3}); xp(0) = xd(0); xp(1) = xd(1); xp(2) = xd(2);
+            Tensor<float> xm({3}); xm(0) = xd(0); xm(1) = xd(1); xm(2) = xd(2);
+            xp(i) += eps; xm(i) -= eps;
+            cudaDeviceSynchronize();
+
+            auto fp = make_shared<Value>(xp)->exp()->sum();
+            auto fm = make_shared<Value>(xm)->exp()->sum();
+            float num_grad = (scalar_data(fp) - scalar_data(fm)) / (2.0f * eps);
+            float ana_grad = x->getGrad()(i);
+            check("exp grad[" + to_string(i) + "]", ana_grad, num_grad);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: log on a 1D tensor, loss = sum(log(x))                        //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> xd({3});
+        xd(0) = 1.5f; xd(1) = 0.7f; xd(2) = 2.0f;
+        cudaDeviceSynchronize();
+
+        auto x = make_shared<Value>(xd);
+        auto loss = x->log()->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < 3; i++) {
+            Tensor<float> xp({3}); xp(0) = xd(0); xp(1) = xd(1); xp(2) = xd(2);
+            Tensor<float> xm({3}); xm(0) = xd(0); xm(1) = xd(1); xm(2) = xd(2);
+            xp(i) += eps; xm(i) -= eps;
+            cudaDeviceSynchronize();
+
+            auto fp = make_shared<Value>(xp)->log()->sum();
+            auto fm = make_shared<Value>(xm)->log()->sum();
+            float num_grad = (scalar_data(fp) - scalar_data(fm)) / (2.0f * eps);
+            float ana_grad = x->getGrad()(i);
+            check("log grad[" + to_string(i) + "]", ana_grad, num_grad);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: sum — gradient should be all-ones                             //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> xd({4});
+        xd(0) = 1.0f; xd(1) = 2.0f; xd(2) = 3.0f; xd(3) = -1.0f;
+        cudaDeviceSynchronize();
+
+        auto x = make_shared<Value>(xd);
+        auto loss = x->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < 4; i++) {
+            check("sum grad[" + to_string(i) + "]", x->getGrad()(i), 1.0f);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: element-wise +, loss = sum(a + b)                             //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> ad({3}); ad(0) = 1.0f; ad(1) = -2.0f; ad(2) = 0.5f;
+        Tensor<float> bd({3}); bd(0) = 0.3f; bd(1) =  1.0f; bd(2) = -0.7f;
+        cudaDeviceSynchronize();
+
+        auto a = make_shared<Value>(ad);
+        auto b = make_shared<Value>(bd);
+        auto loss = (a + b)->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        // d(sum(a+b))/da_i = 1, d(sum(a+b))/db_i = 1
+        for (int i = 0; i < 3; i++) {
+            check("add a-grad[" + to_string(i) + "]", a->getGrad()(i), 1.0f);
+            check("add b-grad[" + to_string(i) + "]", b->getGrad()(i), 1.0f);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: element-wise *, loss = sum(a * b)                             //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> ad({3}); ad(0) = 1.0f; ad(1) = -2.0f; ad(2) = 0.5f;
+        Tensor<float> bd({3}); bd(0) = 0.3f; bd(1) =  1.0f; bd(2) = -0.7f;
+        cudaDeviceSynchronize();
+
+        auto a = make_shared<Value>(ad);
+        auto b = make_shared<Value>(bd);
+        auto loss = (a * b)->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        // d(sum(a*b))/da_i = b_i, d(sum(a*b))/db_i = a_i
+        for (int i = 0; i < 3; i++) {
+            check("mul a-grad[" + to_string(i) + "]", a->getGrad()(i), bd(i));
+            check("mul b-grad[" + to_string(i) + "]", b->getGrad()(i), ad(i));
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Test: 2-D dot product, loss = sum(A @ B)                            //
+    // A is 2x3, B is 3x2; result is 2x2                                  //
+    // ------------------------------------------------------------------ //
+    {
+        Tensor<float> Ad({2, 3});
+        Ad(0,0) = 1.0f; Ad(0,1) =  0.5f; Ad(0,2) = -1.0f;
+        Ad(1,0) = 2.0f; Ad(1,1) = -0.5f; Ad(1,2) =  0.3f;
+        Tensor<float> Bd({3, 2});
+        Bd(0,0) = 0.2f; Bd(0,1) = -0.1f;
+        Bd(1,0) = 0.4f; Bd(1,1) =  0.6f;
+        Bd(2,0) = -0.3f; Bd(2,1) = 0.7f;
+        cudaDeviceSynchronize();
+
+        auto A = make_shared<Value>(Ad);
+        auto B = make_shared<Value>(Bd);
+        auto loss = A->dot(B)->sum();
+        loss->set_grad_1();
+        loss->backward();
+        cudaDeviceSynchronize();
+
+        // Numerical check for a subset of A's and B's gradients
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                Tensor<float> Ap({2,3}); Ap = Ad; Ap(i,j) += eps;
+                Tensor<float> Am({2,3}); Am = Ad; Am(i,j) -= eps;
+                cudaDeviceSynchronize();
+                auto fp = make_shared<Value>(Ap)->dot(make_shared<Value>(Bd))->sum();
+                auto fm = make_shared<Value>(Am)->dot(make_shared<Value>(Bd))->sum();
+                float num_grad = (scalar_data(fp) - scalar_data(fm)) / (2.0f * eps);
+                float ana_grad = A->getGrad()(i, j);
+                check("dot A-grad[" + to_string(i) + "," + to_string(j) + "]", ana_grad, num_grad);
+            }
+        }
+    }
+
+    if (all_passed) {
+        cout << "[PASS] All gradient checks passed." << endl;
+    } else {
+        throw runtime_error("One or more gradient checks failed.");
+    }
+    cout << "END: Gradient Check Tests" << endl;
+}
+
 int main(int argc, char const *argv[]){
     const string& dataset_path = dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
     (void)dataset_path;
@@ -918,6 +1140,8 @@ int main(int argc, char const *argv[]){
         train_bigram_probability();
     } else if (command == "bigram-nn") {
         train_bigram_nn();
+    } else if (command == "grad-check") {
+        test_grad_check();
     } else {
         cerr << "Unknown command: " << command << endl;
         cerr << "Default command: tensor2d" << endl;

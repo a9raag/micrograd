@@ -70,9 +70,9 @@ shared_ptr<Value> Value::subTensor(vector<vector<size_t>> dimRanges)
 {
     Tensor<float> subData = this->data.subTensor(dimRanges);
     auto out = make_shared<Value>(subData, std::initializer_list<std::shared_ptr<Value>>{shared_from_this()}, "slice", label);
-    out->node_backward = [this, out]() mutable
+    out->node_backward = [this, out, dimRanges]() mutable
     {
-        this->grad = this->grad + out->grad;
+        this->grad.scatterAdd(out->grad, dimRanges);
     };
     return out;
 }

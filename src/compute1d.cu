@@ -55,7 +55,6 @@ void Compute1D<T>::allocateMemory(T* data, size_t size) {
 template <typename T>
 Compute1D<T>::Compute1D(size_t size)
 {
-    this->data = new T[size];
     this->shape[0] = size;
     this->size = size;
     this->threadsPerBlock = 32;
@@ -121,8 +120,8 @@ T* Compute1D<T>::dot(BaseCompute<T>& compute){
     thrust::device_vector<T> d_vec(c, c + size);
     T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<float>());
     
-    T* out = new T[1];
-    if(cudaMallocManaged(&out, this->size * sizeof(T)) != cudaSuccess){
+    T* out;
+    if(cudaMallocManaged(&out, sizeof(T)) != cudaSuccess){
         cout<<"1dcompute:dot: Error in allocating memory"<<endl;
         throw runtime_error("1dcompute:dot Error in allocating memory");
     }
@@ -379,8 +378,8 @@ T *Compute1D<T>::sum()
 {
     thrust::device_vector<T> d_vec(data, data + this->size);
     T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<T>());
-    T* out = new T[1];
-    if(cudaMallocManaged(&out, this->size * sizeof(T)) != cudaSuccess){
+    T* out;
+    if(cudaMallocManaged(&out, sizeof(T)) != cudaSuccess){
         cout<<"1dcompute:dot: Error in allocating memory"<<endl;
         throw runtime_error("1dcompute:dot Error in allocating memory");
     }
@@ -417,6 +416,16 @@ T *Compute1D<T>::subArray(vector<vector<size_t>> dimRange)
     dim3 blocksPerGrid((newSize + threadsPerBlock.x - 1) / threadsPerBlock.x);
     subArrayKernel<<<blocksPerGrid, threadsPerBlock>>>(this->data, out, dimRange[0][0], newSize);
     return out;
+}
+template <typename T>
+void Compute1D<T>::scatterAdd(BaseCompute<T>& src, vector<vector<size_t>> dimRanges)
+{
+    size_t start = dimRanges[0][0];
+    size_t srcSize = dimRanges[0][1] - dimRanges[0][0];
+    int tpb = 256;
+    int bpg = (srcSize + tpb - 1) / tpb;
+    scatterAddKernel<<<bpg, tpb>>>(this->data, src.getData(), srcSize, start);
+    cudaDeviceSynchronize();
 }
 template <typename T>
 void Compute1D<T>::fill(T val)

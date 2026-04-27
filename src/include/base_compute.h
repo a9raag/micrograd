@@ -45,6 +45,10 @@ class BaseCompute {
 
         virtual T* subArray(vector<vector<size_t>> dimRanges) = 0;
 
+        virtual void scatterAdd(BaseCompute<T>& src, vector<vector<size_t>> dimRanges) {
+            throw std::runtime_error("scatterAdd not implemented");
+        }
+
         virtual T* log() = 0;
         virtual T* exp() = 0;
 
