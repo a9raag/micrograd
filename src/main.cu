@@ -43,7 +43,11 @@ string resolve_dataset_path(const char* argv0) {
         }
     }
 
-    throw runtime_error("Could not locate data/names.txt from the current working directory or executable path.");
+    string error_message = "Could not locate data/names.txt. Checked:";
+    for (const auto& candidate : candidates) {
+        error_message += "\n - " + candidate.lexically_normal().string();
+    }
+    throw runtime_error(error_message);
 }
 
 void initialize_dataset_path(const char* argv0) {
@@ -883,7 +887,7 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
-    dataset_config::initialize_dataset_path(argv[0]);
+    dataset_config::initialize_dataset_path(argc > 0 ? argv[0] : nullptr);
     string command = argc > 1 ? argv[1] : "tensor2d";
 
     if (command == "tensor1d") {
