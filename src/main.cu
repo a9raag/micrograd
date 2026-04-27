@@ -17,6 +17,8 @@ namespace dataset_config {
 namespace fs = std::filesystem;
 
 constexpr const char* dataset_relative_path = "data/names.txt";
+// When the executable is launched from an out-of-tree build directory, the
+// repository data directory is typically one level above the working directory.
 constexpr const char* build_dataset_relative_path = "../data/names.txt";
 constexpr const char* available_commands =
     "tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, "
@@ -882,7 +884,8 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
-    dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
+    const string& dataset_path = dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
+    (void)dataset_path;
     string command = argc > 1 ? argv[1] : "tensor2d";
 
     if (command == "tensor1d") {
