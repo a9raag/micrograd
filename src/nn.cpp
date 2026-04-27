@@ -19,7 +19,7 @@ public:
     
     Layer(size_t n_input, size_t n_outs)
     {
-        this->n_inputs = n_inputs;
+        this->n_inputs = {n_input};
         Tensor<float> wt = Tensor<float>({n_input, n_outs}).randomize();
         this->weights = make_shared<Value>(wt);
         Tensor<float> bt = Tensor<float>({1, n_outs}).randomize();
