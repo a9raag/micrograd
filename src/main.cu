@@ -1,5 +1,6 @@
 #include <iostream>
-#include<vector>
+#include <string>
+#include <vector>
 #include "tensor.cu"
 #include "compute1d.cu"
 #include "compute2d.cu"
@@ -9,6 +10,12 @@
 #include "data.cpp"
 #include "helper.cpp"
 using namespace std;
+
+namespace {
+string dataset_path() {
+    return string(MICROGRAD_SOURCE_DIR) + "/data/names.txt";
+}
+}
 
 void test_compute(){
     
@@ -700,7 +707,7 @@ void test_data(){
     cout<<"START: Test Data"<<endl;
     cout<<"=========================="<<endl;
 
-    Data data("../names.txt");
+    Data data(dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -732,7 +739,7 @@ void test_data(){
 
 void train_bigram_probability(){
     // intialise data
-    Data data("../names.txt");
+    Data data(dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -766,7 +773,7 @@ void train_bigram_probability(){
 }
 
 void train_bigram_nn(){
-    Data data("/home/anurag/dev/micrograd/names.txt");
+    Data data(dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -838,19 +845,43 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
-    // test_tensor_1d();
-    test_tensor_2d();
-    // test_value2d();
-    // test_backprop();
-    // test_gradient();
-    // test_random();
-    // test_matrix_vector_ops();
-    // test_value_broadcast();
-    // test_layer();
-    // test_mlp();
-    // test_large_mlp();
-    // test_sub_tensor();  
-    train_bigram_nn();   
-    return 0;
+    string command = argc > 1 ? argv[1] : "tensor2d";
 
+    if (command == "tensor1d") {
+        test_tensor_1d();
+    } else if (command == "tensor2d") {
+        test_tensor_2d();
+    } else if (command == "value2d") {
+        test_value2d();
+    } else if (command == "backprop") {
+        test_backprop();
+    } else if (command == "gradient") {
+        test_gradient();
+    } else if (command == "random") {
+        test_random();
+    } else if (command == "matrix-vector") {
+        test_matrix_vector_ops();
+    } else if (command == "value-broadcast") {
+        test_value_broadcast();
+    } else if (command == "layer") {
+        test_layer();
+    } else if (command == "mlp") {
+        test_mlp();
+    } else if (command == "large-mlp") {
+        test_large_mlp();
+    } else if (command == "sub-tensor") {
+        test_sub_tensor();
+    } else if (command == "data") {
+        test_data();
+    } else if (command == "bigram-probability") {
+        train_bigram_probability();
+    } else if (command == "bigram-nn") {
+        train_bigram_nn();
+    } else {
+        cerr << "Unknown command: " << command << endl;
+        cerr << "Available commands: tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, value-broadcast, layer, mlp, large-mlp, sub-tensor, data, bigram-probability, bigram-nn" << endl;
+        return 1;
+    }
+
+    return 0;
 }
