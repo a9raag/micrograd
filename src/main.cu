@@ -1,4 +1,6 @@
+#include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "tensor.cu"
@@ -11,16 +13,45 @@
 #include "helper.cpp"
 using namespace std;
 
-namespace {
-constexpr const char* dataset_relative_path = "/data/names.txt";
+namespace dataset_config {
+namespace fs = std::filesystem;
+
+constexpr const char* dataset_relative_path = "data/names.txt";
+constexpr const char* build_dataset_relative_path = "../data/names.txt";
 constexpr const char* available_commands =
     "tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, "
     "value-broadcast, layer, mlp, large-mlp, sub-tensor, data, "
     "bigram-probability, bigram-nn";
 
-string get_dataset_path() {
-    static const string path = string(MICROGRAD_SOURCE_DIR) + dataset_relative_path;
-    return path;
+string resolved_dataset_path;
+
+string resolve_dataset_path(const char* argv0) {
+    vector<fs::path> candidates = {
+        fs::current_path() / dataset_relative_path,
+        fs::current_path() / build_dataset_relative_path,
+    };
+
+    if (argv0 != nullptr && argv0[0] != '\0') {
+        fs::path executable_path = fs::absolute(fs::path(argv0)).parent_path();
+        candidates.push_back(executable_path / dataset_relative_path);
+        candidates.push_back(executable_path / build_dataset_relative_path);
+    }
+
+    for (const auto& candidate : candidates) {
+        if (fs::exists(candidate)) {
+            return fs::weakly_canonical(candidate).string();
+        }
+    }
+
+    throw runtime_error("Could not locate data/names.txt from the current working directory or executable path.");
+}
+
+void initialize_dataset_path(const char* argv0) {
+    resolved_dataset_path = resolve_dataset_path(argv0);
+}
+
+const string& get_dataset_path() {
+    return resolved_dataset_path;
 }
 }
 
@@ -714,7 +745,7 @@ void test_data(){
     cout<<"START: Test Data"<<endl;
     cout<<"=========================="<<endl;
 
-    Data data(get_dataset_path());
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -746,7 +777,7 @@ void test_data(){
 
 void train_bigram_probability(){
     // intialise data
-    Data data(get_dataset_path());
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -780,7 +811,7 @@ void train_bigram_probability(){
 }
 
 void train_bigram_nn(){
-    Data data(get_dataset_path());
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -852,6 +883,7 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
+    dataset_config::initialize_dataset_path(argv[0]);
     string command = argc > 1 ? argv[1] : "tensor2d";
 
     if (command == "tensor1d") {
@@ -887,7 +919,7 @@ int main(int argc, char const *argv[]){
     } else {
         cerr << "Unknown command: " << command << endl;
         cerr << "Default command: tensor2d" << endl;
-        cerr << "Available commands: " << available_commands << endl;
+        cerr << "Available commands: " << dataset_config::available_commands << endl;
         return 1;
     }
 

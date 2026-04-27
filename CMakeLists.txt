@@ -20,9 +20,6 @@ if(MICROGRAD_ENABLE_CUDA)
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/src/include
         )
-        target_compile_definitions(micrograd PRIVATE
-            MICROGRAD_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-        )
         target_compile_features(micrograd PRIVATE cxx_std_17)
         set_target_properties(micrograd PROPERTIES
             CUDA_SEPARABLE_COMPILATION ON
