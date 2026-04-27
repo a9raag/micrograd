@@ -12,8 +12,10 @@
 using namespace std;
 
 namespace {
-string dataset_path() {
-    return string(MICROGRAD_SOURCE_DIR) + "/data/names.txt";
+constexpr const char* kDatasetRelativePath = "/data/names.txt";
+
+string get_dataset_path() {
+    return string(MICROGRAD_SOURCE_DIR) + kDatasetRelativePath;
 }
 }
 
@@ -707,7 +709,7 @@ void test_data(){
     cout<<"START: Test Data"<<endl;
     cout<<"=========================="<<endl;
 
-    Data data(dataset_path());
+    Data data(get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -739,7 +741,7 @@ void test_data(){
 
 void train_bigram_probability(){
     // intialise data
-    Data data(dataset_path());
+    Data data(get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -773,7 +775,7 @@ void train_bigram_probability(){
 }
 
 void train_bigram_nn(){
-    Data data(dataset_path());
+    Data data(get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
