@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include "tensor.cu"
+#include "cpu_compute1d.cu"
+#include "cpu_compute2d.cu"
 #include "compute1d.cu"
 #include "compute2d.cu"
 #include "engine.cu"
@@ -887,6 +889,9 @@ int main(int argc, char const *argv[]){
     const string& dataset_path = dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
     (void)dataset_path;
     string command = argc > 1 ? argv[1] : "tensor2d";
+
+    cout << "Device: " << (device_config::use_cpu() ? "cpu" : "cuda")
+         << "  (set MICROGRAD_DEVICE=cpu to use CPU)" << endl;
 
     if (command == "tensor1d") {
         test_tensor_1d();
