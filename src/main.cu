@@ -23,8 +23,6 @@ constexpr const char* available_commands =
     "value-broadcast, layer, mlp, large-mlp, sub-tensor, data, "
     "bigram-probability, bigram-nn";
 
-string resolved_dataset_path;
-
 string resolve_dataset_path(const char* argv0) {
     vector<fs::path> candidates = {
         fs::current_path() / dataset_relative_path,
@@ -43,19 +41,16 @@ string resolve_dataset_path(const char* argv0) {
         }
     }
 
-    string error_message = "Could not locate data/names.txt. Checked:";
+    string error_message = "Could not locate " + string(dataset_relative_path) + ". Checked:";
     for (const auto& candidate : candidates) {
         error_message += "\n - " + candidate.lexically_normal().string();
     }
     throw runtime_error(error_message);
 }
 
-void initialize_dataset_path(const char* argv0) {
-    resolved_dataset_path = resolve_dataset_path(argv0);
-}
-
-const string& get_dataset_path() {
-    return resolved_dataset_path;
+const string& get_dataset_path(const char* argv0 = nullptr) {
+    static const string path = resolve_dataset_path(argv0);
+    return path;
 }
 }
 
@@ -887,7 +882,7 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
-    dataset_config::initialize_dataset_path(argc > 0 ? argv[0] : nullptr);
+    dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
     string command = argc > 1 ? argv[1] : "tensor2d";
 
     if (command == "tensor1d") {
