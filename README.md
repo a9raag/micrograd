@@ -1,6 +1,6 @@
 # micrograd
 
-A minimal **automatic differentiation (autograd) engine** and tensor playground written in **C++ with CUDA**. This branch evolves the original scalar-only micrograd implementation into a tensor-based project with CUDA-backed compute kernels, a tensor-aware `Value` graph, and experiments for bigram models and small neural networks.
+A minimal **automatic differentiation (autograd) engine** and tensor playground written in **C++ with CUDA**. Inspired by [Andrej Karpathy's Python micrograd](https://github.com/karpathy/micrograd), this branch evolves the original scalar-only implementation into a tensor-based project with CUDA-backed compute kernels, a tensor-aware `Value` graph, and experiments for bigram models and small neural networks.
 
 ---
 
@@ -149,7 +149,7 @@ If no argument is provided, the binary runs the lightweight `tensor2d` smoke tes
 The bundled names corpus lives at:
 
 ```text
-/data/names.txt
+data/names.txt
 ```
 
 The executable resolves this file from the repository source directory at compile time, so it works from an out-of-tree build directory without requiring hard-coded absolute paths.
