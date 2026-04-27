@@ -1,5 +1,8 @@
+#include <filesystem>
 #include <iostream>
-#include<vector>
+#include <stdexcept>
+#include <string>
+#include <vector>
 #include "tensor.cu"
 #include "compute1d.cu"
 #include "compute2d.cu"
@@ -9,6 +12,49 @@
 #include "data.cpp"
 #include "helper.cpp"
 using namespace std;
+
+namespace dataset_config {
+namespace fs = std::filesystem;
+
+constexpr const char* dataset_relative_path = "data/names.txt";
+// When the executable is launched from an out-of-tree build directory, the
+// repository data directory is typically one level above the working directory.
+constexpr const char* build_dataset_relative_path = "../data/names.txt";
+constexpr const char* available_commands =
+    "tensor1d, tensor2d, value2d, backprop, gradient, random, matrix-vector, "
+    "value-broadcast, layer, mlp, large-mlp, sub-tensor, data, "
+    "bigram-probability, bigram-nn";
+
+string resolve_dataset_path(const char* argv0) {
+    vector<fs::path> candidates = {
+        fs::current_path() / dataset_relative_path,
+        fs::current_path() / build_dataset_relative_path,
+    };
+
+    if (argv0 != nullptr && argv0[0] != '\0') {
+        fs::path executable_path = fs::absolute(fs::path(argv0)).parent_path();
+        candidates.push_back(executable_path / dataset_relative_path);
+        candidates.push_back(executable_path / build_dataset_relative_path);
+    }
+
+    for (const auto& candidate : candidates) {
+        if (fs::exists(candidate)) {
+            return fs::weakly_canonical(candidate).string();
+        }
+    }
+
+    string error_message = "Could not locate " + string(dataset_relative_path) + ". Checked:";
+    for (const auto& candidate : candidates) {
+        error_message += "\n - " + candidate.lexically_normal().string();
+    }
+    throw runtime_error(error_message);
+}
+
+const string& get_dataset_path(const char* argv0 = nullptr) {
+    static const string path = resolve_dataset_path(argv0);
+    return path;
+}
+}
 
 void test_compute(){
     
@@ -700,7 +746,7 @@ void test_data(){
     cout<<"START: Test Data"<<endl;
     cout<<"=========================="<<endl;
 
-    Data data("../names.txt");
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -732,7 +778,7 @@ void test_data(){
 
 void train_bigram_probability(){
     // intialise data
-    Data data("../names.txt");
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -766,7 +812,7 @@ void train_bigram_probability(){
 }
 
 void train_bigram_nn(){
-    Data data("/home/anurag/dev/micrograd/names.txt");
+    Data data(dataset_config::get_dataset_path());
     vector<string> words = data.getWords();
     cout <<"Words size: " << words.size() << endl;
     cout << "Vocab Size: "<< data.getVocabSize() << endl;
@@ -838,19 +884,46 @@ void train_bigram_nn(){
 
 }
 int main(int argc, char const *argv[]){
-    // test_tensor_1d();
-    test_tensor_2d();
-    // test_value2d();
-    // test_backprop();
-    // test_gradient();
-    // test_random();
-    // test_matrix_vector_ops();
-    // test_value_broadcast();
-    // test_layer();
-    // test_mlp();
-    // test_large_mlp();
-    // test_sub_tensor();  
-    train_bigram_nn();   
-    return 0;
+    const string& dataset_path = dataset_config::get_dataset_path(argc > 0 ? argv[0] : nullptr);
+    (void)dataset_path;
+    string command = argc > 1 ? argv[1] : "tensor2d";
 
+    if (command == "tensor1d") {
+        test_tensor_1d();
+    } else if (command == "tensor2d") {
+        test_tensor_2d();
+    } else if (command == "value2d") {
+        test_value2d();
+    } else if (command == "backprop") {
+        test_backprop();
+    } else if (command == "gradient") {
+        test_gradient();
+    } else if (command == "random") {
+        test_random();
+    } else if (command == "matrix-vector") {
+        test_matrix_vector_ops();
+    } else if (command == "value-broadcast") {
+        test_value_broadcast();
+    } else if (command == "layer") {
+        test_layer();
+    } else if (command == "mlp") {
+        test_mlp();
+    } else if (command == "large-mlp") {
+        test_large_mlp();
+    } else if (command == "sub-tensor") {
+        test_sub_tensor();
+    } else if (command == "data") {
+        test_data();
+    } else if (command == "bigram-probability") {
+        train_bigram_probability();
+    } else if (command == "bigram-nn") {
+        train_bigram_nn();
+    } else {
+        cerr << "Unknown command: " << command << endl;
+        cerr << "Default command: tensor2d" << endl;
+        cerr << "Available commands: " << dataset_config::available_commands << endl;
+        return 1;
+    }
+
+    return 0;
 }
