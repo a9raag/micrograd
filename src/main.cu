@@ -890,7 +890,7 @@ int main(int argc, char const *argv[]){
     (void)dataset_path;
     string command = argc > 1 ? argv[1] : "tensor2d";
 
-    cout << "Device: " << (device_config::use_cpu() ? "cpu" : "cuda")
+    cout << "Device: " << (device_config::use_cpu() ? "CPU" : "CUDA")
          << "  (set MICROGRAD_DEVICE=cpu to use CPU)" << endl;
 
     if (command == "tensor1d") {
