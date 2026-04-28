@@ -47,7 +47,6 @@ Tensor<T>::Tensor(vector<size_t> shape) {
 
 template <typename T>
 Tensor<T>::Tensor(const Tensor& other) {
-    cout<<"copy constructor"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -62,7 +61,6 @@ Tensor<T>::Tensor(const Tensor& other) {
 
 template <typename T>
 Tensor<T>::Tensor(Tensor&& other) {
-    cout<<"move constructor"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -73,7 +71,6 @@ Tensor<T>::Tensor(Tensor&& other) {
 
 template <typename T>
 Tensor<T> Tensor<T>::operator=(const Tensor<T>& other) {
-    cout<<"copy assignment"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -87,7 +84,6 @@ Tensor<T> Tensor<T>::operator=(const Tensor<T>& other) {
 
 template <typename T>
 Tensor<T> Tensor<T>::operator=(Tensor<T>& other) {
-    cout<<"copy assignment non const"<<endl;
     this->ndims = other.ndims;
     this->shape = other.shape;
     this->size = other.size;
@@ -207,6 +203,12 @@ Tensor<T> Tensor<T>::subTensor(vector<vector<size_t>> dimRanges)
     Tensor<T> result = Tensor<T>(newShape);
     result.setData(dataCompute->subArray(dimRanges));
     return result;
+}
+
+template <typename T>
+void Tensor<T>::scatterAdd(const Tensor<T>& src, vector<vector<size_t>> dimRanges)
+{
+    dataCompute->scatterAdd(*src.dataCompute, dimRanges);
 }
 
 template <typename T>

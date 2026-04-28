@@ -36,7 +36,6 @@ T* Compute2D<T>::getData(){
 
 template <typename T>
 Compute2D<T>::Compute2D(int x, int y){
-    this->data = new T[x * y];
     this->size = x * y;
     this->shape[0] = x;
     this->shape[1] = y;
@@ -60,7 +59,7 @@ Compute2D<T>::Compute2D(int x, int y){
 
 template <typename T>
 T* Compute2D<T>::transpose(){
-    T* result = new T[shape[0] * shape[1]];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -95,7 +94,7 @@ MATRIX_TYPE matrixType(BaseCompute<T>& lhs, BaseCompute<T>& rhs){
 }
 template <typename T>
 T* Compute2D<T>::add(BaseCompute<T>& other){
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -124,7 +123,7 @@ T* Compute2D<T>::add(BaseCompute<T>& other){
 
 template <typename T>
 T*  Compute2D<T>::add(float b){
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -140,8 +139,8 @@ T* Compute2D<T>::sum()
 {
     thrust::device_vector<T> d_vec(data, data + size);
     T sum = thrust::reduce(d_vec.begin(), d_vec.end(), 0.0, thrust::plus<T>());
-    T* out = new T[1];
-    if(cudaMallocManaged(&out, size * sizeof(T)) != cudaSuccess){
+    T* out;
+    if(cudaMallocManaged(&out, sizeof(T)) != cudaSuccess){
         cout<<"2dcompute:dot: Error in allocating memory"<<endl;
         throw runtime_error("2dcompute:dot Error in allocating memory");
     }
@@ -155,7 +154,7 @@ T* Compute2D<T>::sum(int axis)
 {
     if (axis == 0)
     {
-        T *result = new T[shape[1]];
+        T *result;
         if (cudaMallocManaged(&result, shape[1] * sizeof(T)) != cudaSuccess)
         {
             cout << "Error in allocating memory" << endl;
@@ -167,7 +166,7 @@ T* Compute2D<T>::sum(int axis)
     }
     else if (axis == 1)
     {
-        T *result = new T[shape[0]];
+        T *result;
         if (cudaMallocManaged(&result, shape[0] * sizeof(T)) != cudaSuccess)
         {
             cout << "Error in allocating memory" << endl;
@@ -202,8 +201,8 @@ T *Compute2D<T>::subArray(vector<vector<size_t>> dimRanges)
     }
     size_t result_x = dimRanges[0][1] - dimRanges[0][0];
     size_t result_y = dimRanges[1][1] - dimRanges[1][0];
-    T *result = new T[result_x * result_y];
-    if (cudaMallocManaged(&result, result_x * result_x * sizeof(T)) != cudaSuccess)
+    T *result;
+    if (cudaMallocManaged(&result, result_x * result_y * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
         cout << cudaGetErrorString(cudaGetLastError()) << endl;
@@ -213,6 +212,19 @@ T *Compute2D<T>::subArray(vector<vector<size_t>> dimRanges)
     dim3 tempGrid((result_x + tempBlock.x - 1) / tempBlock.x, (result_y + tempBlock.y - 1) / tempBlock.y);
     subArrayKernel2d<<<tempGrid, tempBlock>>>(this->data, result, shape[0], shape[1], result_x, result_y, dimRanges[0][0], dimRanges[1][0]);
     return result;
+}
+
+template <typename T>
+void Compute2D<T>::scatterAdd(BaseCompute<T>& src, vector<vector<size_t>> dimRanges)
+{
+    size_t src_x = dimRanges[0][1] - dimRanges[0][0];
+    size_t src_y = dimRanges[1][1] - dimRanges[1][0];
+    size_t start_x = dimRanges[0][0];
+    size_t start_y = dimRanges[1][0];
+    dim3 tempBlock(32, 32);
+    dim3 tempGrid((src_x + tempBlock.x - 1) / tempBlock.x, (src_y + tempBlock.y - 1) / tempBlock.y);
+    scatterAddKernel2d<<<tempGrid, tempBlock>>>(this->data, src.getData(), shape[1], src_x, src_y, start_x, start_y);
+    cudaDeviceSynchronize();
 }
 
 template <typename T>
@@ -254,7 +266,7 @@ T* Compute2D<T>::mul(BaseCompute<T>& other){
 
 template <typename T>
 T* Compute2D<T>::mul(float b){
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -269,7 +281,7 @@ T* Compute2D<T>::mul(float b){
 template <typename T>
 T *Compute2D<T>::greater(BaseCompute<T> &compute)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -292,7 +304,7 @@ T *Compute2D<T>::greater(BaseCompute<T> &compute)
 template <typename T>
 T *Compute2D<T>::greater(float b)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -308,7 +320,7 @@ T *Compute2D<T>::greater(float b)
 template <typename T>
 T *Compute2D<T>::less(BaseCompute<T> &compute)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -332,7 +344,7 @@ T *Compute2D<T>::less(BaseCompute<T> &compute)
 template <typename T>
 T *Compute2D<T>::less(float b)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -348,7 +360,7 @@ T *Compute2D<T>::less(float b)
 template <typename T>
 T *Compute2D<T>::equal(BaseCompute<T> &compute)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -371,7 +383,7 @@ T *Compute2D<T>::equal(BaseCompute<T> &compute)
 template <typename T>
 T *Compute2D<T>::equal(float b)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -387,7 +399,7 @@ T *Compute2D<T>::equal(float b)
 template <typename T>
 T *Compute2D<T>::greaterEqual(BaseCompute<T> &compute)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -410,7 +422,7 @@ T *Compute2D<T>::greaterEqual(BaseCompute<T> &compute)
 template <typename T>
 T *Compute2D<T>::greaterEqual(float b)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -426,7 +438,7 @@ T *Compute2D<T>::greaterEqual(float b)
 template <typename T>  
 T *Compute2D<T>::lessEqual(BaseCompute<T> &compute)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -449,7 +461,7 @@ T *Compute2D<T>::lessEqual(BaseCompute<T> &compute)
 template <typename T>
 T *Compute2D<T>::lessEqual(float b)
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -464,8 +476,8 @@ T *Compute2D<T>::lessEqual(float b)
 
 template <typename T>
 T* Compute2D<T>::dot(BaseCompute<T>& compute){
-    T* result = new T[size];
-    if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
+    T* result;
+    if(cudaMallocManaged(&result, shape[0] * compute.getShape()[1] * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
         throw runtime_error("Error in allocating memory");
@@ -489,7 +501,7 @@ T* Compute2D<T>::dot(BaseCompute<T>& compute){
 
 template <typename T>
 T* Compute2D<T>::pow(float n){
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -502,7 +514,7 @@ T* Compute2D<T>::pow(float n){
 
 template <typename T>
 T* Compute2D<T>::tanh(){
-    T* result = new T[size];
+    T* result;
     if(cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess){
         cout<<"Error in allocating memory"<<endl;
         cout<<cudaGetErrorString(cudaGetLastError())<<endl;
@@ -516,7 +528,7 @@ T* Compute2D<T>::tanh(){
 template <typename T>
 T *Compute2D<T>::log()
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -530,7 +542,7 @@ T *Compute2D<T>::log()
 template <typename T>
 T *Compute2D<T>::exp()
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -545,7 +557,7 @@ T *Compute2D<T>::exp()
 template <typename T>
 T *Compute2D<T>::sigmoid()
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -559,7 +571,7 @@ T *Compute2D<T>::sigmoid()
 template <typename T>
 T *Compute2D<T>::relu()
 {
-    T *result = new T[size];
+    T *result;
     if (cudaMallocManaged(&result, size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -588,7 +600,7 @@ void Compute2D<T>::fillRandom(unsigned int seed)
 template <typename T>
 int *Compute2D<T>::toInt()
 {
-    int *result = new int[size];
+    int *result;
     if (cudaMallocManaged(&result, size * sizeof(int)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -604,7 +616,7 @@ int *Compute2D<T>::toInt()
 template <typename T>
 float *Compute2D<T>::toFloat()
 {
-    float *result = new float[size];
+    float *result;
     if (cudaMallocManaged(&result, size * sizeof(float)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;
@@ -637,7 +649,7 @@ T *Compute2D<T>::fancyIndexing(vector<vector<size_t>> indices)
         }
     }
     size_t result_size = indices[0].size();
-    T *result = new T[result_size];
+    T *result;
     if (cudaMallocManaged(&result, result_size * sizeof(T)) != cudaSuccess)
     {
         cout << "Error in allocating memory" << endl;

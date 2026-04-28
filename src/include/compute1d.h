@@ -62,6 +62,7 @@ public:
     T* sum(int axis);
 
     T* subArray(vector<vector<size_t>> dimRanges);
+    void scatterAdd(BaseCompute<T>& src, vector<vector<size_t>> dimRanges);
 
     void fill(T val);
     void fillRandom(unsigned int seed);

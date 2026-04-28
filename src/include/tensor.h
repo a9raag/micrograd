@@ -48,6 +48,7 @@ public:
     
     Tensor<T> reshape(vector<size_t> newShape);
     Tensor<T> subTensor(vector<vector<size_t>> dimRanges);
+    void scatterAdd(const Tensor<T>& src, vector<vector<size_t>> dimRanges);
     
     Tensor<T> fancyIndexing(vector<vector<size_t>> indices);
 
