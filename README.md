@@ -1,6 +1,6 @@
 # micrograd
 
-A minimal scalar-valued **automatic differentiation (autograd) engine** and neural network library, written in **C++**. Inspired by [Andrej Karpathy's Python micrograd](https://github.com/karpathy/micrograd), this project implements backpropagation over dynamically built computational graphs and demonstrates training a small multi-layer perceptron (MLP) from scratch.
+A minimal **automatic differentiation (autograd) engine** and tensor playground written in **C++ with CUDA**. Inspired by [Andrej Karpathy's Python micrograd](https://github.com/karpathy/micrograd), this branch evolves the original scalar-only implementation into a tensor-based project with CUDA-backed compute kernels, a tensor-aware `Value` graph, and experiments for bigram models and small neural networks.
 
 ---
 
@@ -9,104 +9,100 @@ A minimal scalar-valued **automatic differentiation (autograd) engine** and neur
 - [Overview](#overview)
 - [Project Structure](#project-structure)
 - [Key Concepts](#key-concepts)
-  - [Value – The Autograd Node](#value--the-autograd-node)
-  - [Backpropagation](#backpropagation)
-  - [Neural Network Layers](#neural-network-layers)
+  - [Tensor-backed Value graph](#tensor-backed-value-graph)
+  - [CUDA compute backends](#cuda-compute-backends)
+  - [Example experiments](#example-experiments)
 - [Building](#building)
 - [Running](#running)
-- [Example Usage](#example-usage)
-- [Architecture Diagram](#architecture-diagram)
+- [Dataset](#dataset)
+- [Notes](#notes)
 
 ---
 
 ## Overview
 
-micrograd is an educational implementation of the core mechanics behind modern deep learning frameworks (like PyTorch) — but reduced to its absolute essentials:
+This branch keeps the educational spirit of micrograd while changing the implementation significantly:
 
-- A `Value` class that wraps a scalar and records the operations applied to it.
-- Operator overloading so that arithmetic on `Value` objects transparently builds a computation graph.
-- A `backward()` method that walks the graph in reverse topological order and accumulates gradients via the chain rule.
-- `Neuron`, `Layer`, and `MLP` classes built on top of `Value` to demonstrate a working neural network.
+- `Value` now stores `Tensor<float>` objects instead of scalar `double` values.
+- Tensor operations are delegated to `Compute1D` and `Compute2D` backends.
+- CUDA kernels power tensor math such as elementwise ops, reductions, indexing, and matrix multiplication.
+- Example entry points in `src/main.cu` exercise tensor math, autograd, and a character-level bigram training loop.
+
+Because this is a CUDA-first branch, it is intentionally separate from the original scalar API on `main`.
 
 ---
 
 ## Project Structure
 
-```
+```text
 micrograd/
-├── include/
-│   └── engine.h      # Header: Value class declaration + operator friend declarations
-├── engine.cpp        # Implementation of Value and its operations/backprop
-├── nn.cpp            # Neural network classes (Neuron, Layer, MLP) + training demo
-├── CMakeLists.txt    # CMake build configuration
-└── README.md
+├── CMakeLists.txt
+├── README.md
+├── data/
+│   └── names.txt
+└── src/
+    ├── compute1d.cu
+    ├── compute2d.cu
+    ├── cuda_compute.cu
+    ├── data.cpp
+    ├── engine.cu
+    ├── helper.cpp
+    ├── main.cu
+    ├── nn.cpp
+    ├── tensor.cu
+    └── include/
+        ├── base_compute.h
+        ├── compute1d.h
+        ├── compute2d.h
+        ├── data.h
+        ├── engine.h
+        ├── helper.h
+        └── tensor.h
 ```
 
 | File | Purpose |
 |------|---------|
-| `include/engine.h` | Public interface for the `Value` autograd node |
-| `engine.cpp` | Core autograd engine: scalar operations, gradient accumulation, `backward()` |
-| `nn.cpp` | Neural network building blocks and a full MLP training loop |
-| `CMakeLists.txt` | Builds `engine` as a shared library and `nn` as the main executable |
+| `src/include/engine.h`, `src/engine.cu` | Tensor-aware autograd node implementation |
+| `src/include/tensor.h`, `src/tensor.cu` | Tensor container, operators, reshaping, reductions, and indexing |
+| `src/include/compute1d.h`, `src/compute1d.cu` | 1D CUDA compute backend |
+| `src/include/compute2d.h`, `src/compute2d.cu` | 2D CUDA compute backend |
+| `src/cuda_compute.cu` | CUDA kernels shared by the compute backends |
+| `src/data.cpp` | Simple dataset reader for the names corpus |
+| `src/nn.cpp` | Experimental layer and MLP helpers |
+| `src/main.cu` | Manual smoke tests and training/demo entry points |
 
 ---
 
 ## Key Concepts
 
-### Value – The Autograd Node
+### Tensor-backed Value graph
 
-The central data structure is the `Value` class (`include/engine.h`, `engine.cpp`). Every scalar in the computation is wrapped in a `Value`. Each `Value` stores:
+The `Value` class records tensor operations and attaches a backward lambda to each output node. The graph is traversed in reverse topological order by `backward()`, just like the scalar implementation on `main`, but gradients now flow through tensor operations such as:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `data` | `double` | The forward-pass scalar value |
-| `grad` | `double` | Accumulated gradient (∂loss/∂this) |
-| `prev` | `set<shared_ptr<Value>>` | Pointers to the operands that produced this node |
-| `_op` | `string` | Name of the operation (e.g. `"+"`, `"*"`, `"tanh"`) |
-| `node_backward` | `function<void()>` | Lambda that propagates gradient to `prev` nodes |
+- elementwise addition, subtraction, multiplication, and division
+- `pow`, `tanh`, `relu`, `sigmoid`, `exp`, and `log`
+- reductions like `sum()` and `mean()`
+- matrix multiplication via `dot()`
+- tensor slicing with `subTensor()`
 
-Supported operations:
+### CUDA compute backends
 
-| Operation | Method / Operator |
-|-----------|------------------|
-| Addition | `operator+` |
-| Multiplication | `operator*` |
-| Subtraction | `operator-` |
-| Division | `operator/` |
-| Power | `pow(float n)` |
-| Hyperbolic tangent | `tanh()` |
-| Negation | `neg()` |
+`Tensor<T>` delegates storage and math to a `BaseCompute<T>` implementation selected from the tensor rank:
 
-All operations return a new `shared_ptr<Value>` and capture the backward closure needed to propagate gradients.
+- `Compute1D<T>` for vectors
+- `Compute2D<T>` for matrices
 
-### Backpropagation
+These classes use CUDA-managed allocations and launch kernels from `src/cuda_compute.cu` for math and indexing operations.
 
-`Value::backward()` triggers a full reverse-mode automatic differentiation pass:
+### Example experiments
 
-1. Sets the gradient of the root node to `1.0`.
-2. Builds a **topological ordering** of all reachable nodes using DFS.
-3. Iterates the nodes in topological order, calling each node's `node_backward` lambda to accumulate `grad` into its children.
+`src/main.cu` contains small entry points for:
 
-This mirrors how PyTorch's `.backward()` works, but at a single-scalar granularity.
-
-### Neural Network Layers
-
-`nn.cpp` builds a complete neural network on top of the `Value` engine:
-
-#### `Neuron`
-- Holds `n_inputs` weight `Value`s (randomly initialized in `[-1, 1]`) and one bias `Value` (initialised to `0`).
-- `operator()(inputs)` computes the linear combination: `bias + Σ(w_i * x_i)`.
-- `get_params()` returns all weights and the bias as a flat vector — used for gradient descent.
-
-#### `Layer`
-- A collection of `n_outs` `Neuron`s, each receiving the same `n_inputs`-dimensional input.
-- `operator()(inputs)` runs all neurons and returns a vector of output `Value`s.
-
-#### `MLP` (Multi-Layer Perceptron)
-- Accepts `nin` (number of inputs) and `nouts` (list of output sizes per layer).
-- Chains layers: input → hidden layers → output.
-- `operator()(inputs)` performs the full forward pass.
-- `get_params()` collects every weight and bias across all layers.
+- tensor math smoke tests
+- autograd experiments
+- data loading checks
+- a bigram probability model
+- a bigram neural-network-style training loop
 
 ---
 
@@ -114,103 +110,54 @@ This mirrors how PyTorch's `.backward()` works, but at a single-scalar granulari
 
 ### Prerequisites
 
-- CMake ≥ 3.0
-- A C++14-compatible compiler (GCC, Clang, MSVC)
+- CMake >= 3.18
+- A C++17 compiler
+- A working CUDA toolkit with `nvcc` available to CMake
 
-### Steps
+### Configure and build
 
 ```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
+cmake -S . -B build
+cmake --build build
 ```
 
-This produces:
-- `libengine.so` (or `.dylib` / `.dll`) — the shared autograd engine library
-- `nn` — the executable that runs the MLP training demo
+If CUDA is not installed, CMake still configures successfully but skips the executable target and prints a warning.
+
+When CUDA is available, the build produces:
+
+- `micrograd` — the CUDA demo executable
 
 ---
 
 ## Running
 
+The executable accepts a small command selector:
+
 ```bash
-./nn
+./build/micrograd tensor2d
+./build/micrograd data
+./build/micrograd bigram-probability
+./build/micrograd bigram-nn
 ```
 
-The default `main()` in `nn.cpp` calls `test_mlp_large()`, which:
-
-1. Creates a 3 → 4 → 4 → 1 MLP.
-2. Runs 100 epochs of gradient descent (MSE loss, learning rate `0.001`) on a 4-sample dataset.
-3. Prints the loss after each epoch.
+If no argument is provided, the binary runs the lightweight `tensor2d` smoke test.
 
 ---
 
-## Example Usage
+## Dataset
 
-Below is a condensed example of what the engine can do (drawn from `engine.cpp`):
+The bundled names corpus lives at:
 
-```cpp
-#include "include/engine.h"
-
-// Build inputs and weights
-auto x1 = make_shared<Value>(2.0);   x1->label = "x1";
-auto x2 = make_shared<Value>(0.0);   x2->label = "x2";
-auto w1 = make_shared<Value>(-3.0);  w1->label = "w1";
-auto w2 = make_shared<Value>(1.0);   w2->label = "w2";
-auto b  = make_shared<Value>(6.88);  b->label  = "b";
-
-// Forward pass — builds the computation graph
-auto n = (x1 * w1) + (x2 * w2) + b;
-auto o = n->tanh();
-
-// Backward pass — computes all gradients
-o->backward();
-
-std::cout << "x1 grad: " << x1->get_grad() << std::endl;
-std::cout << "w1 grad: " << w1->get_grad() << std::endl;
+```text
+data/names.txt
 ```
 
-And training an MLP:
-
-```cpp
-MLP mlp(3, {4, 4, 1});                      // 3 inputs, two hidden layers of 4, 1 output
-auto outputs = mlp(inputs);                 // forward pass
-auto loss = compute_mse(outputs, targets);  // scalar loss Value
-loss->backward();                           // backprop
-
-for (auto param : mlp.get_params()) {       // gradient descent step
-    param->set_data(param->get_data() - lr * param->get_grad());
-    param->set_grad(0.0);                   // zero gradients
-}
-```
+The executable resolves this file from the repository source directory at compile time, so it works from an out-of-tree build directory without requiring hard-coded absolute paths.
 
 ---
 
-## Architecture Diagram
+## Notes
 
-```
-           ┌──────────────────────────────────────────┐
-           │              engine (libengine)           │
-           │                                          │
-           │   Value ──── data, grad                  │
-           │     │        prev (children)             │
-           │     │        node_backward (lambda)      │
-           │     │                                    │
-           │     └── +  *  -  /  pow  tanh  neg       │
-           │               │                          │
-           │           backward()                     │
-           │    (topological sort → chain rule)       │
-           └──────────────────┬───────────────────────┘
-                              │ uses
-           ┌──────────────────▼───────────────────────┐
-           │              nn (executable)              │
-           │                                          │
-           │  Neuron   →  weights[] + bias            │
-           │     ↓         linear combination         │
-           │  Layer    →  [Neuron, Neuron, ...]       │
-           │     ↓                                    │
-           │  MLP      →  [Layer, Layer, ...]         │
-           │     ↓         forward pass               │
-           │  Training loop (MSE loss + SGD)          │
-           └──────────────────────────────────────────┘
-```
+- This branch is a large architectural change relative to `main`, not a drop-in extension of the scalar-only implementation.
+- The demo code in `src/main.cu` is still intended for experimentation and manual verification.
+- The CUDA target is optional at configure time so the repository remains inspectable on systems without a CUDA toolkit.
